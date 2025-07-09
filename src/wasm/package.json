@@ -1,0 +1,15 @@
+{
+  "name": "password-strength-wasm",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "password_strength_wasm_bg.wasm",
+    "password_strength_wasm.js",
+    "password_strength_wasm.d.ts"
+  ],
+  "main": "password_strength_wasm.js",
+  "types": "password_strength_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
