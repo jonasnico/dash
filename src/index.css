@@ -18,6 +18,9 @@
   --main-foreground: oklch(0% 0 0);
 
   --main: oklch(67.47% 0.1725 259.61);
+  --performance-card: oklch(98% 0.02 45);
+  --performance-card-foreground: oklch(15% 0 0);
+  --secondary-card: oklch(100% 0 0);
   --border: oklch(0% 0 0);
   --ring: oklch(0% 0 0);
   --overlay: oklch(0% 0 0 / 0.8);
@@ -39,6 +42,9 @@
 
   --main: oklch(67.47% 0.1725 259.61);
   --main-foreground: oklch(0% 0 0);
+  --performance-card: oklch(25% 0.02 260);
+  --performance-card-foreground: oklch(92% 0 0);
+  --secondary-card: oklch(20% 0 0);
 
   --border: oklch(0% 0 0);
   --ring: oklch(100% 0 0);
@@ -54,6 +60,9 @@
   --color-secondary-background: var(--secondary-background);
   --color-foreground: var(--foreground);
   --color-main-foreground: var(--main-foreground);
+  --color-performance-card: var(--performance-card);
+  --color-performance-card-foreground: var(--performance-card-foreground);
+  --color-secondary-card: var(--secondary-card);
   --color-border: var(--border);
   --color-overlay: var(--overlay);
   --color-ring: var(--ring);
