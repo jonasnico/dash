@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
         `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${osloLatitude}&lon=${osloLongitude}`,
         {
           headers: {
-            "User-Agent": "NeobrutalistDashboard/1.0 (dashboard@example.com)",
+            "User-Agent": "The Dash/1.0 https://github.com/jonasnico/dash",
           },
         }
       );
