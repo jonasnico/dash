@@ -19,21 +19,22 @@ export const fetchOsloWeather = async (): Promise<WeatherData> => {
   const osloLongitude = 10.7522;
 
   try {
-    
     // https://developer.yr.no/doc/TermsOfService/
     const response = await fetch(
       `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${osloLatitude}&lon=${osloLongitude}`
     );
 
     if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Weather API error: ${response.status} ${response.statusText}`
+      );
     }
 
     const weatherData = await response.json();
-    
+
     const expires = response.headers.get("expires");
     cacheWeatherData(weatherData, expires);
-    
+
     return weatherData;
   } catch (error) {
     const expiredCache = getExpiredCachedWeather();
@@ -41,7 +42,7 @@ export const fetchOsloWeather = async (): Promise<WeatherData> => {
       console.warn("Using expired weather cache due to API error:", error);
       return expiredCache;
     }
-    
+
     throw error;
   }
 };
@@ -53,7 +54,7 @@ const getCachedWeather = (): WeatherData | null => {
 
     const parsedCache: CachedWeatherData = JSON.parse(cached);
     const now = Date.now();
-    
+
     if (parsedCache.expires) {
       const expiresTime = new Date(parsedCache.expires).getTime();
       if (now < expiresTime) {
@@ -88,9 +89,9 @@ const cacheWeatherData = (data: WeatherData, expires?: string | null): void => {
     const cacheData: CachedWeatherData = {
       data,
       timestamp: Date.now(),
-      ...(expires && { expires })
+      ...(expires && { expires }),
     };
-    
+
     localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
   } catch (error) {
     console.warn("Error caching weather data:", error);
