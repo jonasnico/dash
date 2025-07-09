@@ -17,7 +17,12 @@ import {
   Star,
   GitFork,
 } from "lucide-react";
-import type { UselessFact, WeatherData, GitHubEvent, CurrentWeather } from "@/types";
+import type {
+  UselessFact,
+  WeatherData,
+  GitHubEvent,
+  CurrentWeather,
+} from "@/types";
 
 const Dashboard: React.FC = () => {
   const [fact, setFact] = useState<UselessFact | null>(null);

@@ -5,6 +5,6 @@ export interface LoadingState {
 
 export interface ApiResponse<T> {
   data: T;
-  status: 'success' | 'error';
+  status: "success" | "error";
   message?: string;
 }
