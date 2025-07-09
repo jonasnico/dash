@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -7,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Button from "@/components/ui/button";
-import Badge from "@/components/ui/badge";
 import {
   RefreshCw,
   CloudRain,
@@ -16,6 +16,7 @@ import {
   GitBranch,
   Star,
   GitFork,
+  Zap,
 } from "lucide-react";
 import type {
   UselessFact,
@@ -182,35 +183,21 @@ const Dashboard: React.FC = () => {
     };
   };
 
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="relative">
-          <div className="absolute top-0 right-0">
+          <div className="absolute top-0 right-0 flex gap-3">
+            <Link to="/password-performance">
+              <Button variant="default" size="sm" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Performance Lab
+              </Button>
+            </Link>
             <ThemeToggle />
           </div>
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-heading text-foreground">The Dash</h1>
-            <p className="text-lg text-foreground">{getCurrentDate()}</p>
-            <Badge variant="default" className="text-base px-4 py-2">
-              {getCurrentTime()}
-            </Badge>
           </div>
         </div>
 
