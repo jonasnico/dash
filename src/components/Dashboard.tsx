@@ -23,6 +23,7 @@ import type {
   GitHubEvent,
   CurrentWeather,
 } from "@/types";
+import ThemeToggle from "./ThemeToggle";
 
 const Dashboard: React.FC = () => {
   const [fact, setFact] = useState<UselessFact | null>(null);
@@ -215,12 +216,17 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-heading text-foreground">The Dash</h1>
-          <p className="text-lg text-foreground">{getCurrentDate()}</p>
-          <Badge variant="default" className="text-base px-4 py-2">
-            {getCurrentTime()}
-          </Badge>
+        <div className="relative">
+          <div className="absolute top-0 right-0">
+            <ThemeToggle />
+          </div>
+          <div className="text-center space-y-2">
+            <h1 className="text-4xl font-heading text-foreground">The Dash</h1>
+            <p className="text-lg text-foreground">{getCurrentDate()}</p>
+            <Badge variant="default" className="text-base px-4 py-2">
+              {getCurrentTime()}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
