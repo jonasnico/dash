@@ -1,0 +1,1 @@
+# A little dashboard for myself, using Neobrutalism components and shadcn/ui
