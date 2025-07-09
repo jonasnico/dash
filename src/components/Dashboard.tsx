@@ -8,41 +8,16 @@ import {
 } from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Badge from "@/components/ui/badge";
-import { RefreshCw, CloudRain, Sun, Cloud } from "lucide-react";
-
-interface UselessFact {
-  id: string;
-  text: string;
-  source: string;
-  source_url: string;
-  language: string;
-  permalink: string;
-}
-
-interface WeatherData {
-  properties: {
-    timeseries: Array<{
-      time: string;
-      data: {
-        instant: {
-          details: {
-            air_temperature: number;
-            relative_humidity: number;
-            wind_speed: number;
-          };
-        };
-        next_6_hours?: {
-          summary: {
-            symbol_code: string;
-          };
-          details: {
-            precipitation_amount: number;
-          };
-        };
-      };
-    }>;
-  };
-}
+import {
+  RefreshCw,
+  CloudRain,
+  Sun,
+  Cloud,
+  GitBranch,
+  Star,
+  GitFork,
+} from "lucide-react";
+import type { UselessFact, WeatherData, GitHubEvent, CurrentWeather } from "@/types";
 
 const Dashboard: React.FC = () => {
   const [fact, setFact] = useState<UselessFact | null>(null);
@@ -51,6 +26,9 @@ const Dashboard: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [githubActivity, setGithubActivity] = useState<GitHubEvent[]>([]);
+  const [githubLoading, setGithubLoading] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
 
   const fetchUselessFact = async () => {
     setLoading(true);
@@ -104,10 +82,88 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const fetchGitHubActivity = async () => {
+    setGithubLoading(true);
+    setGithubError(null);
+
+    try {
+      const response = await fetch(
+        "https://api.github.com/users/jonasnico/events/public"
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch GitHub activity");
+      }
+
+      const events = await response.json();
+      setGithubActivity(events.slice(0, 5));
+    } catch (err) {
+      setGithubError(
+        err instanceof Error ? err.message : "Failed to load GitHub activity"
+      );
+    } finally {
+      setGithubLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUselessFact();
     fetchOsloWeather();
+    fetchGitHubActivity();
   }, []);
+
+  const getActivityIcon = (eventType: string) => {
+    switch (eventType) {
+      case "PushEvent":
+        return GitBranch;
+      case "WatchEvent":
+        return Star;
+      case "ForkEvent":
+        return GitFork;
+      default:
+        return GitBranch;
+    }
+  };
+
+  const formatActivityDescription = (event: GitHubEvent) => {
+    const repoName = event.repo.name.split("/")[1];
+
+    switch (event.type) {
+      case "PushEvent": {
+        const commitCount = event.payload.commits?.length || 0;
+        return `Pushed ${commitCount} commit${
+          commitCount !== 1 ? "s" : ""
+        } to ${repoName}`;
+      }
+      case "WatchEvent":
+        return `Starred ${repoName}`;
+      case "ForkEvent":
+        return `Forked ${repoName}`;
+      case "CreateEvent":
+        return `Created ${
+          event.payload.ref ? "branch" : "repository"
+        } ${repoName}`;
+      case "PullRequestEvent":
+        return `${event.payload.action} PR in ${repoName}`;
+      case "IssuesEvent":
+        return `${event.payload.action} issue in ${repoName}`;
+      default:
+        return `Activity in ${repoName}`;
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const eventDate = new Date(dateString);
+    const diffInHours = Math.floor(
+      (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60)
+    );
+
+    if (diffInHours < 1) return "Just now";
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  };
 
   const getWeatherIcon = (symbolCode: string) => {
     if (symbolCode.includes("rain")) return CloudRain;
@@ -115,7 +171,7 @@ const Dashboard: React.FC = () => {
     return Sun;
   };
 
-  const getCurrentTodaysWeather = () => {
+  const getCurrentTodaysWeather = (): CurrentWeather | null => {
     if (!weather?.properties?.timeseries?.length) return null;
 
     const currentHour = weather.properties.timeseries[0];
@@ -162,7 +218,7 @@ const Dashboard: React.FC = () => {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="border-4 border-border shadow-shadow">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
               <div>
@@ -204,9 +260,6 @@ const Dashboard: React.FC = () => {
                     "{fact.text}"
                   </blockquote>
                   <div className="flex justify-between items-center pt-4 border-t-2 border-border/20">
-                    <Badge variant="default" className="text-sm">
-                      Fact #{fact.id}
-                    </Badge>
                     <Button
                       variant="neutral"
                       size="sm"
@@ -265,7 +318,7 @@ const Dashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4">
                         <div className="text-center border-2 border-border rounded-base p-4 bg-secondary-background">
                           <div className="text-2xl font-heading text-main">
                             {todaysWeather.humidity}%
@@ -300,6 +353,60 @@ const Dashboard: React.FC = () => {
                 })()}
             </CardContent>
           </Card>
+
+          <Card className="border-4 border-border shadow-shadow">
+            <CardHeader>
+              <CardTitle className="text-3xl font-heading">
+                GitHub Activity
+              </CardTitle>
+              <CardDescription className="text-base">
+                Recent dev activity for jonasnico
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {githubLoading && (
+                <div className="text-center text-foreground py-12">
+                  <div className="text-lg">Loading activity...</div>
+                </div>
+              )}
+
+              {githubError && (
+                <div className="text-red-600 bg-red-50 p-6 rounded-base border-4 border-red-200 text-lg font-medium">
+                  {githubError}
+                </div>
+              )}
+
+              {githubActivity.length > 0 && !githubLoading && (
+                <div className="space-y-3">
+                  {githubActivity.map((event) => {
+                    const ActivityIcon = getActivityIcon(event.type);
+
+                    return (
+                      <div
+                        key={event.id}
+                        className="border-2 border-border rounded-base p-4 bg-secondary-background"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <ActivityIcon
+                            size={20}
+                            className="text-main mt-1 flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground leading-snug">
+                              {formatActivityDescription(event)}
+                            </p>
+                            <p className="text-xs text-foreground/60 mt-1">
+                              {formatTimeAgo(event.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="border-2 border-border">
@@ -316,12 +423,16 @@ const Dashboard: React.FC = () => {
               <Button onClick={fetchOsloWeather} disabled={weatherLoading}>
                 Refresh Weather
               </Button>
+              <Button onClick={fetchGitHubActivity} disabled={githubLoading}>
+                Refresh GitHub
+              </Button>
               <Button
-                variant="neutral"
-                onClick={() => window.open(fact?.permalink || "#", "_blank")}
-                disabled={!fact}
+                variant="reverse"
+                onClick={() =>
+                  window.open("https://github.com/jonasnico", "_blank")
+                }
               >
-                Go to JSON
+                View GitHub
               </Button>
             </div>
           </CardContent>
