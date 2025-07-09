@@ -22,6 +22,7 @@ import type {
   PasswordStrengthResult,
   BenchmarkResult,
   WasmModule,
+  BenchmarkStats,
 } from "@/types/password";
 import ThemeToggle from "./ThemeToggle";
 import { loadPasswordWasm } from "@/utils/wasmLoader";
@@ -58,44 +59,166 @@ const PasswordPerformance: React.FC = () => {
     wasmResult?.feedback?.includes("WASM") ||
     wasmResult?.feedback?.includes("WebAssembly");
   const implementationName = isUsingWasm
-    ? "WebAssembly"
+    ? "Rust WebAssembly"
     : "JavaScript (Fallback)";
+
+  const removeOutliers = useCallback((times: number[]): number[] => {
+    if (times.length < 4) return times;
+
+    const sorted = [...times].sort((a, b) => a - b);
+    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+    const iqr = q3 - q1;
+    const lowerBound = q1 - 1.5 * iqr;
+    const upperBound = q3 + 1.5 * iqr;
+
+    return sorted.filter((time) => time >= lowerBound && time <= upperBound);
+  }, []);
+
+  const calculateStatistics = useCallback(
+    (times: number[]): BenchmarkStats => {
+      const filtered = removeOutliers(times);
+      const mean =
+        filtered.reduce((sum, time) => sum + time, 0) / filtered.length;
+      const median = filtered[Math.floor(filtered.length / 2)];
+      const min = Math.min(...filtered);
+      const max = Math.max(...filtered);
+
+      return {
+        mean,
+        median,
+        min,
+        max,
+        count: filtered.length,
+        outliers: times.length - filtered.length,
+      };
+    },
+    [removeOutliers]
+  );
+
+  const runHighPrecisionBenchmark = useCallback(
+    async (
+      fn: () => void,
+      iterations: number,
+      rounds: number = 10
+    ): Promise<number[]> => {
+      const times: number[] = [];
+
+      for (let round = 0; round < rounds; round++) {
+        // Force garbage collection before each round if available
+        if (window.gc) {
+          window.gc();
+        }
+
+        // Small delay to ensure stable conditions
+        await new Promise((resolve) => setTimeout(resolve, 5));
+
+        const start = performance.now();
+        for (let i = 0; i < iterations; i++) {
+          fn();
+        }
+        const end = performance.now();
+
+        times.push(end - start);
+      }
+
+      return times;
+    },
+    []
+  );
 
   const analyzePassword = useCallback(async () => {
     if (!wasmModule) return;
 
     try {
+      // Single analysis for results display
       const jsRes = analyzePasswordJS(password);
       const wasmRes = wasmModule.analyze_password_strength(password);
 
       setJsResult(jsRes);
       setWasmResult(wasmRes);
 
-      const iterations = 1000;
-
-      const jsStart = performance.now();
-      for (let i = 0; i < iterations; i++) {
-        analyzePasswordJS(password);
-      }
-      const jsEnd = performance.now();
-      const jsTime = jsEnd - jsStart;
-
-      const wasmTime = wasmModule.benchmark_password_analysis(
-        password,
-        iterations
+      const baseIterations = 5000; 
+      const iterations = Math.max(
+        baseIterations,
+        Math.min(50000, baseIterations * (20 / Math.max(password.length, 1)))
       );
+      const rounds = 15; 
+      const warmupRounds = 5;
+
+      console.log(
+        `Running benchmark with ${iterations} iterations over ${rounds} rounds`
+      );
+
+      // Extended warm-up to stabilize JIT compilation and browser optimization
+      console.log("Warming up...");
+      for (let i = 0; i < warmupRounds; i++) {
+        // Warm up JavaScript
+        for (let j = 0; j < Math.min(2000, iterations / 2); j++) {
+          analyzePasswordJS(password);
+        }
+
+        // Warm up WASM
+        wasmModule.benchmark_password_analysis(
+          password,
+          Math.min(2000, iterations / 2)
+        );
+
+        // Small delay between warm-up rounds
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      console.log("Running JavaScript benchmark...");
+      const jsTimes = await runHighPrecisionBenchmark(
+        () => analyzePasswordJS(password),
+        iterations,
+        rounds
+      );
+
+      console.log("Running WASM benchmark...");
+      const wasmTimes: number[] = [];
+      for (let round = 0; round < rounds; round++) {
+        // Force garbage collection if available
+        if (window.gc) {
+          window.gc();
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        const wasmTime = wasmModule.benchmark_password_analysis(
+          password,
+          iterations
+        );
+        wasmTimes.push(wasmTime);
+      }
+
+      const jsStats = calculateStatistics(jsTimes);
+      const wasmStats = calculateStatistics(wasmTimes);
+
+      console.log("JS Stats:", jsStats);
+      console.log("WASM Stats:", wasmStats);
+
+      const jsTime = jsStats.median;
+      const wasmTime = wasmStats.median;
 
       setBenchmark({
         jsTime,
         wasmTime,
         speedup: wasmTime > 0 ? jsTime / wasmTime : 1,
         iterations,
+        jsStats,
+        wasmStats,
       });
+
+      console.log(
+        `Benchmark complete: JS=${jsTime.toFixed(2)}ms, WASM=${wasmTime.toFixed(
+          2
+        )}ms, Speedup=${(jsTime / wasmTime).toFixed(2)}x`
+      );
     } catch (err) {
       console.error("Analysis failed:", err);
       setError("Password analysis failed");
     }
-  }, [wasmModule, password]);
+  }, [wasmModule, password, calculateStatistics, runHighPrecisionBenchmark]);
 
   useEffect(() => {
     if (wasmModule && password) {
@@ -234,6 +357,9 @@ const PasswordPerformance: React.FC = () => {
                 <p className="text-sm text-main-foreground/80">
                   JavaScript vs {implementationName} Performance Comparison
                 </p>
+                <p className="text-xs text-main-foreground/60">
+                  Benchmarking Rust-compiled WebAssembly against native JavaScript
+                </p>
               </div>
             </div>
             <ThemeToggle />
@@ -250,7 +376,7 @@ const PasswordPerformance: React.FC = () => {
                 Password Analysis
               </CardTitle>
               <CardDescription>
-                Enter a password to analyze its strength and compare performance
+                Enter a password to analyze its strength and compare performance between JavaScript and Rust WebAssembly implementations
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -274,19 +400,26 @@ const PasswordPerformance: React.FC = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <span className="text-sm text-foreground/70 mr-2">Try:</span>
-                  {["password123", "MyStr0ng!P@ssw0rd", "abcd1234"].map(
-                    (example) => (
-                      <Button
-                        key={example}
-                        variant="neutral"
-                        size="sm"
-                        onClick={() => setPassword(example)}
-                        className="text-xs"
-                      >
-                        {example}
-                      </Button>
-                    )
-                  )}
+                  {[
+                    "password123",
+                    "MyStr0ng!P@ssw0rd", 
+                    "abcd1234",
+                    "SuperSecure2024!",
+                    "qwerty",
+                    "Tr0ub4dor&3",
+                    "correcthorsebatterystaple",
+                    "P@ssw0rd!2024#Secure"
+                  ].map((example) => (
+                    <Button
+                      key={example}
+                      variant="neutral"
+                      size="sm"
+                      onClick={() => setPassword(example)}
+                      className="text-xs"
+                    >
+                      {example}
+                    </Button>
+                  ))}
                 </div>
 
                 {error && (
@@ -351,6 +484,167 @@ const PasswordPerformance: React.FC = () => {
                     </div>
                     <div className="text-2xl font-weight-heading text-foreground">
                       {benchmark.speedup.toFixed(1)}x
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {benchmark && benchmark.jsStats && benchmark.wasmStats && (
+            <Card className="border-2 border-border rounded-base shadow-shadow bg-background">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-weight-heading text-foreground">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  Detailed Performance Statistics
+                </CardTitle>
+                <CardDescription className="text-foreground/70">
+                  Statistical analysis of{" "}
+                  {benchmark.iterations.toLocaleString()} iterations across
+                  multiple rounds
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-4 border-2 border-border rounded-base bg-secondary-background">
+                    <h3 className="font-weight-heading text-foreground mb-3 flex items-center gap-2">
+                      <Timer className="h-4 w-4 text-yellow-600" />
+                      JavaScript Stats
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Median:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.median.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Mean:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.mean.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Min:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.min.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Max:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.max.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">
+                          Valid Samples:
+                        </span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.count}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Outliers:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.jsStats.outliers}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border-2 border-border rounded-base bg-secondary-background">
+                    <h3 className="font-weight-heading text-foreground mb-3 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-purple-600" />
+                      Rust WebAssembly Stats
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Median:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.median.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Mean:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.mean.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Min:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.min.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Max:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.max.toFixed(2)}ms
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">
+                          Valid Samples:
+                        </span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.count}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-foreground/70">Outliers:</span>
+                        <span className="font-weight-heading text-foreground">
+                          {benchmark.wasmStats.outliers}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 border-2 border-border rounded-base bg-main/10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Activity className="h-4 w-4 text-blue-600" />
+                    <span className="font-weight-heading text-foreground text-sm">
+                      Benchmark Reliability
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-foreground/70">
+                        JS Consistency:
+                      </span>
+                      <span className="ml-2 font-weight-heading text-foreground">
+                        {(
+                          100 -
+                          ((benchmark.jsStats.max - benchmark.jsStats.min) /
+                            benchmark.jsStats.mean) *
+                            100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-foreground/70">
+                        WASM Consistency:
+                      </span>
+                      <span className="ml-2 font-weight-heading text-foreground">
+                        {(
+                          100 -
+                          ((benchmark.wasmStats.max - benchmark.wasmStats.min) /
+                            benchmark.wasmStats.mean) *
+                            100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-foreground/70">Confidence:</span>
+                      <span className="ml-2 font-weight-heading text-foreground">
+                        {benchmark.jsStats.count >= 10 &&
+                        benchmark.wasmStats.count >= 10
+                          ? "High"
+                          : "Medium"}
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -4,17 +4,14 @@ export async function loadPasswordWasm(): Promise<WasmModule> {
   try {
     console.log("Attempting to load WebAssembly module...");
 
-    // Import the WASM module from src directory
     const wasmModule = await import("../wasm/password_strength_wasm.js");
 
-    // Initialize the WASM module with the WASM file
     await wasmModule.default(
       new URL("../wasm/password_strength_wasm_bg.wasm", import.meta.url)
     );
 
     console.log("WebAssembly module loaded successfully!");
 
-    // Test the WASM module with simple function calls
     try {
       const testScore = wasmModule.analyze_password_score("test123");
       console.log("WASM test successful, score:", testScore);
@@ -34,7 +31,7 @@ export async function loadPasswordWasm(): Promise<WasmModule> {
             score,
             max_score: 100,
             strength_level,
-            feedback: "WASM analysis complete",
+            feedback: "Rust WebAssembly analysis complete",
             entropy,
             time_to_crack: "varies",
           };
@@ -54,11 +51,10 @@ export async function loadPasswordWasm(): Promise<WasmModule> {
     };
   } catch (error) {
     console.warn(
-      "Failed to load WebAssembly module, falling back to optimized JavaScript:",
+      "Failed to load WebAssembly module, falling back to JavaScript:",
       error
     );
 
-    // Enhanced fallback to optimized JavaScript implementation
     const { analyzePasswordJS } = await import("./passwordAnalysis");
 
     return {
@@ -66,31 +62,25 @@ export async function loadPasswordWasm(): Promise<WasmModule> {
         const jsResult = analyzePasswordJS(password);
         return {
           ...jsResult,
-          feedback: jsResult.feedback.replace(
-            "Great password!",
-            "Great password! (JavaScript Analysis)"
-          ),
+          feedback: "JavaScript fallback analysis (WASM unavailable)",
         };
       },
       benchmark_password_analysis: (password: string, iterations: number) => {
         const start = performance.now();
         for (let i = 0; i < iterations; i++) {
           analyzePasswordJS(password);
-
-          // Add computational work to simulate optimized processing
+          
           let hash = 0;
           for (let j = 0; j < password.length; j++) {
             const char = password.charCodeAt(j);
             hash = (hash * 31 + char) >>> 0;
             hash = (hash * 1103515245 + 12345) >>> 0;
-            // Additional computation
             Math.sqrt(char * (j + 1));
           }
         }
         const end = performance.now();
 
-        // Return actual time, but slightly faster to simulate optimization
-        return (end - start) * 0.8;
+        return end - start;
       },
     };
   }

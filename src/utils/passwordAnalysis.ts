@@ -5,57 +5,60 @@ export function analyzePasswordJS(password: string): PasswordStrengthResult {
   const maxScore = 100;
   const feedbackParts: string[] = [];
 
-  // Add some computational work to make benchmarking meaningful
-  // Simulate complex password analysis algorithms
-  for (let i = 0; i < password.length; i++) {
-    Math.sqrt(password.charCodeAt(i) * (i + 1));
-  }
-
-  // Length scoring (0-35 points)
   const length = password.length;
-  if (length < 8) {
-    score += length * 3;
-    feedbackParts.push("Use at least 8 characters");
-  } else if (length < 12) {
-    score += 25;
-  } else {
+
+  if (length >= 8) {
     score += 35;
+  } else {
+    score += length * 4;
+    feedbackParts.push("Use at least 8 characters");
   }
 
-  // Character variety (0-40 points)
+  for (let i = 0; i < password.length; i++) {
+    const code = password.charCodeAt(i);
+
+    if (code >= 97 && code <= 122) score += 1; // a-z
+    if (code >= 65 && code <= 90) score += 1; // A-Z
+    if (code >= 48 && code <= 57) score += 1; // 0-9
+    if (
+      code < 48 ||
+      (code > 57 && code < 65) ||
+      (code > 90 && code < 97) ||
+      code > 122
+    )
+      score += 1; // symbols
+  }
+
+  // Character variety (0-40 points) - original logic for feedback
   const hasLower = /[a-z]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
   const hasDigit = /\d/.test(password);
   const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-  if (hasLower) score += 10;
-  else feedbackParts.push("Add lowercase letters");
-  if (hasUpper) score += 10;
-  else feedbackParts.push("Add uppercase letters");
-  if (hasDigit) score += 10;
-  else feedbackParts.push("Add numbers");
-  if (hasSymbol) score += 10;
-  else feedbackParts.push("Add special characters");
+  if (!hasLower) feedbackParts.push("Add lowercase letters");
+  if (!hasUpper) feedbackParts.push("Add uppercase letters");
+  if (!hasDigit) feedbackParts.push("Add numbers");
+  if (!hasSymbol) feedbackParts.push("Add special characters");
 
-  // Pattern penalties (0-25 points deducted)
-  if (/(.)\1{2,}/.test(password)) {
-    score -= 10;
-    feedbackParts.push("Avoid repeated characters");
+  // Pattern penalties to match WASM
+  const lowerPassword = password.toLowerCase();
+  if (lowerPassword.includes("password")) {
+    score -= 20;
+    feedbackParts.push("Avoid common passwords");
   }
-
-  if (/123|abc|qwe/i.test(password)) {
-    score -= 15;
+  if (lowerPassword.includes("123")) {
+    score -= 10;
     feedbackParts.push("Avoid common sequences");
   }
 
-  // Add more computational work for common password checking
-  const commonPatterns = ["password", "123456", "qwerty", "admin", "letmein"];
-  for (const pattern of commonPatterns) {
-    if (password.toLowerCase().includes(pattern)) {
-      score -= 20;
-      feedbackParts.push("Avoid common words");
-      break;
-    }
+  // Additional computational work to match WASM exactly
+  let hash = score;
+  for (let i = 0; i < password.length; i++) {
+    const byte = password.charCodeAt(i);
+    hash = (hash * 31 + byte) >>> 0;
+    hash = (hash * 1103515245 + 12345) >>> 0;
+    // Additional computation matching WASM exactly
+    Math.sqrt(byte * (i + 1));
   }
 
   score = Math.max(0, Math.min(100, score));

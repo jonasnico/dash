@@ -12,9 +12,27 @@ export interface WasmModule {
   benchmark_password_analysis: (password: string, iterations: number) => number;
 }
 
+export interface BenchmarkStats {
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  count: number;
+  outliers: number;
+}
+
 export interface BenchmarkResult {
   jsTime: number;
   wasmTime: number;
   speedup: number;
   iterations: number;
+  jsStats?: BenchmarkStats;
+  wasmStats?: BenchmarkStats;
+}
+
+// extend for garbage collection function
+declare global {
+  interface Window {
+    gc?: () => void;
+  }
 }
