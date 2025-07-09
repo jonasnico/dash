@@ -24,6 +24,7 @@ import type {
   CurrentWeather,
 } from "@/types";
 import ThemeToggle from "./ThemeToggle";
+import { fetchOsloWeather } from "@/services/weatherService";
 
 const Dashboard: React.FC = () => {
   const [fact, setFact] = useState<UselessFact | null>(null);
@@ -56,28 +57,12 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchOsloWeather = async () => {
+  const fetchWeather = async () => {
     setWeatherLoading(true);
     setWeatherError(null);
 
     try {
-      const osloLatitude = 59.9139;
-      const osloLongitude = 10.7522;
-
-      const response = await fetch(
-        `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${osloLatitude}&lon=${osloLongitude}`,
-        {
-          headers: {
-            "User-Agent": "The Dash/1.0 https://github.com/jonasnico/dash",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch weather data");
-      }
-
-      const weatherData = await response.json();
+      const weatherData = await fetchOsloWeather();
       setWeather(weatherData);
     } catch (err) {
       setWeatherError(
@@ -114,7 +99,7 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchUselessFact();
-    fetchOsloWeather();
+    fetchWeather();
     fetchGitHubActivity();
   }, []);
 
@@ -431,7 +416,7 @@ const Dashboard: React.FC = () => {
               <Button onClick={fetchUselessFact} disabled={loading}>
                 New Fact
               </Button>
-              <Button onClick={fetchOsloWeather} disabled={weatherLoading}>
+              <Button onClick={fetchWeather} disabled={weatherLoading}>
                 Refresh Weather
               </Button>
               <Button onClick={fetchGitHubActivity} disabled={githubLoading}>
