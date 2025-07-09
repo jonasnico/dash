@@ -1,6 +1,12 @@
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = performance)]
+    fn now() -> f64;
+}
+
+#[wasm_bindgen]
 pub fn analyze_password_score(password: String) -> i32 {
     console_error_panic_hook::set_once();
     
@@ -50,7 +56,7 @@ pub fn calculate_entropy(password: String) -> f64 {
 
 #[wasm_bindgen]
 pub fn benchmark_computation(password: String, iterations: u32) -> f64 {
-    let start = js_sys::Date::now();
+    let start = now();
     
     let pwd_bytes: Vec<u8> = password.bytes().collect();
     let pwd_chars: Vec<char> = password.chars().collect();
@@ -83,13 +89,12 @@ pub fn benchmark_computation(password: String, iterations: u32) -> f64 {
             let _sqrt_result = ((byte as f64) * ((j + 1) as f64)).sqrt();
         }
         
-        if hash % 1000000 == 0 {
-            // This should almost never happen, but prevents dead code elimination
-            web_sys::console::log_1(&"rare_case".into());
+        if hash % 10000000 == 0 {
+            web_sys::console::log_1(&"benchmark_marker".into());
         }
     }
     
-    let end = js_sys::Date::now();
+    let end = now();
     end - start
 }
 
