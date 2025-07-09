@@ -14,26 +14,17 @@ export function analyzePasswordJS(password: string): PasswordStrengthResult {
     feedbackParts.push("Use at least 8 characters");
   }
 
-  for (let i = 0; i < password.length; i++) {
-    const code = password.charCodeAt(i);
-
-    if (code >= 97 && code <= 122) score += 1; // a-z
-    if (code >= 65 && code <= 90) score += 1; // A-Z
-    if (code >= 48 && code <= 57) score += 1; // 0-9
-    if (
-      code < 48 ||
-      (code > 57 && code < 65) ||
-      (code > 90 && code < 97) ||
-      code > 122
-    )
-      score += 1; // symbols
-  }
-
-  // Character variety (0-40 points) - original logic for feedback
+  // Character variety checks - match WASM logic exactly
   const hasLower = /[a-z]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
   const hasDigit = /\d/.test(password);
   const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  // Score character types (10 points each, matching WASM exactly)
+  if (hasLower) score += 10;
+  if (hasUpper) score += 10;
+  if (hasDigit) score += 10;
+  if (hasSymbol) score += 10;
 
   if (!hasLower) feedbackParts.push("Add lowercase letters");
   if (!hasUpper) feedbackParts.push("Add uppercase letters");
