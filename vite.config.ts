@@ -10,4 +10,14 @@ export default defineConfig({
       "@": path.resolve(process.cwd(), "./src"),
     },
   },
+  server: {
+    fs: {
+      allow: [".."],
+    },
+  },
+  optimizeDeps: {
+    exclude: ["@/wasm/password_strength_wasm.js"],
+  },
+  // Enable WASM support
+  assetsInclude: ["**/*.wasm"],
 });

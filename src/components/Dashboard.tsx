@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -7,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Button from "@/components/ui/button";
-import Badge from "@/components/ui/badge";
 import {
   RefreshCw,
   CloudRain,
@@ -16,6 +16,7 @@ import {
   GitBranch,
   Star,
   GitFork,
+  Zap,
 } from "lucide-react";
 import type {
   UselessFact,
@@ -182,257 +183,276 @@ const Dashboard: React.FC = () => {
     };
   };
 
-  const getCurrentDate = () => {
-    return new Date().toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const getCurrentTime = () => {
-    return new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="relative">
-          <div className="absolute top-0 right-0">
+          <div className="absolute top-0 right-0 flex gap-3">
             <ThemeToggle />
           </div>
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-heading text-foreground">The Dash</h1>
-            <p className="text-lg text-foreground">{getCurrentDate()}</p>
-            <Badge variant="default" className="text-base px-4 py-2">
-              {getCurrentTime()}
-            </Badge>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="border-4 border-border shadow-shadow">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
-              <div>
-                <CardTitle className="text-3xl font-heading">
-                  Today's Useless Fact
-                </CardTitle>
-                <CardDescription className="text-foreground/80 text-base mt-2">
-                  Knowledge you never knew you needed
-                </CardDescription>
-              </div>
-              <Button
-                variant="default"
-                size="icon"
-                onClick={fetchUselessFact}
-                disabled={loading}
-                className={loading ? "animate-spin" : ""}
-              >
-                <RefreshCw size={20} />
-              </Button>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {loading && (
-                <div className="flex items-center justify-center py-12">
-                  <div className="text-foreground text-lg">
-                    Loading amazing useless fact...
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="text-red-800 bg-red-100 p-6 rounded-base border-4 border-red-300 text-lg font-medium">
-                  Error: {error}
-                </div>
-              )}
-
-              {fact && !loading && (
-                <div className="space-y-6">
-                  <blockquote className="text-xl font-medium text-foreground leading-relaxed italic border-l-4 border-main pl-6">
-                    "{fact.text}"
-                  </blockquote>
-                  <div className="flex justify-between items-center pt-4 border-t-2 border-border/20">
-                    <Button
-                      variant="neutral"
-                      size="sm"
-                      onClick={() => window.open(fact.permalink, "_blank")}
-                      className="text-xs"
-                    >
-                      JSON
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-4 border-border shadow-shadow">
-            <CardHeader>
-              <CardTitle className="text-3xl font-heading">
-                Oslo Weather
+        <div className="grid grid-cols-1 gap-6">
+          <Card className="border-4 border-border shadow-shadow bg-performance-card text-performance-card-foreground">
+            <CardHeader className="text-center">
+              <CardTitle className="text-4xl font-heading flex items-center justify-center gap-3">
+                <Zap className="h-10 w-10" />
+                Password Performance Lab
               </CardTitle>
-              <CardDescription className="text-base">
-                Current conditions in Norway's capital
+              <CardDescription className="text-performance-card-foreground/80 text-lg mt-4">
+                Compare JavaScript vs Rust WebAssembly performance in real-time
+                benchmarks
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {weatherLoading && (
-                <div className="text-center text-foreground py-12">
-                  <div className="text-lg">Loading weather...</div>
-                </div>
-              )}
-
-              {weatherError && (
-                <div className="text-red-600 bg-red-50 p-6 rounded-base border-4 border-red-200 text-lg font-medium">
-                  {weatherError}
-                </div>
-              )}
-
-              {weather &&
-                !weatherLoading &&
-                (() => {
-                  const todaysWeather = getCurrentTodaysWeather();
-                  if (!todaysWeather) return null;
-
-                  const WeatherIcon = getWeatherIcon(todaysWeather.symbolCode);
-
-                  return (
-                    <div className="space-y-6">
-                      <div className="text-center border-4 border-border rounded-base p-6 bg-secondary-background">
-                        <div className="flex items-center justify-center mb-4">
-                          <WeatherIcon size={48} className="text-main" />
-                        </div>
-                        <div className="text-5xl font-heading text-main mb-2">
-                          {todaysWeather.temperature}°C
-                        </div>
-                        <div className="text-lg text-foreground font-medium">
-                          Temperature
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="text-center border-2 border-border rounded-base p-4 bg-secondary-background">
-                          <div className="text-2xl font-heading text-main">
-                            {todaysWeather.humidity}%
-                          </div>
-                          <div className="text-sm text-foreground">
-                            Humidity
-                          </div>
-                        </div>
-
-                        <div className="text-center border-2 border-border rounded-base p-4 bg-secondary-background">
-                          <div className="text-2xl font-heading text-main">
-                            {todaysWeather.windSpeed} m/s
-                          </div>
-                          <div className="text-sm text-foreground">
-                            Wind Speed
-                          </div>
-                        </div>
-                      </div>
-
-                      {todaysWeather.precipitation > 0 && (
-                        <div className="text-center border-2 border-border rounded-base p-4 bg-secondary-background">
-                          <div className="text-2xl font-heading text-main">
-                            {todaysWeather.precipitation} mm
-                          </div>
-                          <div className="text-sm text-foreground">
-                            Precipitation
-                          </div>
-                        </div>
-                      )}
+            <CardContent className="text-center space-y-6">
+              <div className="bg-performance-card-foreground/10 border-2 border-performance-card-foreground/20 rounded-base p-6">
+                <h3 className="text-xl font-heading mb-4">Features</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <div className="font-weight-heading">
+                      🦀 Rust WebAssembly
                     </div>
-                  );
-                })()}
+                    <div className="opacity-80">
+                      High-performance password analysis
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-weight-heading">
+                      📊 Statistical Analysis
+                    </div>
+                    <div className="opacity-80">
+                      Precision benchmarking with outlier detection
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-weight-heading">
+                      ⚡ Real-time Comparison
+                    </div>
+                    <div className="opacity-80">
+                      Live performance metrics and insights
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Link to="/password-performance">
+                <Button
+                  variant="reverse"
+                  size="lg"
+                  className="text-lg px-8 py-6"
+                >
+                  Launch Performance Lab
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
-          <Card className="border-4 border-border shadow-shadow">
-            <CardHeader>
-              <CardTitle className="text-3xl font-heading">
-                GitHub Activity
-              </CardTitle>
-              <CardDescription className="text-base">
-                Recent dev activity for jonasnico
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {githubLoading && (
-                <div className="text-center text-foreground py-12">
-                  <div className="text-lg">Loading activity...</div>
-                </div>
-              )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border-2 border-border shadow-sm bg-secondary-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-heading">
+                  Daily Fact
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Random knowledge
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {loading && (
+                  <div className="text-center py-6">
+                    <div className="text-sm">Loading fact...</div>
+                  </div>
+                )}
 
-              {githubError && (
-                <div className="text-red-600 bg-red-50 p-6 rounded-base border-4 border-red-200 text-lg font-medium">
-                  {githubError}
-                </div>
-              )}
+                {error && (
+                  <div className="text-red-800 bg-red-100 p-3 rounded-base border-2 border-red-300 text-sm">
+                    Error: {error}
+                  </div>
+                )}
 
-              {githubActivity.length > 0 && !githubLoading && (
-                <div className="space-y-3">
-                  {githubActivity.map((event) => {
-                    const ActivityIcon = getActivityIcon(event.type);
+                {fact && !loading && (
+                  <div className="space-y-3">
+                    <blockquote className="text-sm text-foreground leading-relaxed italic">
+                      "{fact.text}"
+                    </blockquote>
+                    <div className="flex justify-between items-center pt-2 border-t border-border/20">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={fetchUselessFact}
+                        disabled={loading}
+                        className="text-xs gap-1"
+                      >
+                        <RefreshCw
+                          size={12}
+                          className={loading ? "animate-spin" : ""}
+                        />
+                        New
+                      </Button>
+                      <Button
+                        variant="neutral"
+                        size="sm"
+                        onClick={() => window.open(fact.permalink, "_blank")}
+                        className="text-xs"
+                      >
+                        Source
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-border shadow-sm bg-secondary-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-heading">
+                  Oslo Weather
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Current conditions
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {weatherLoading && (
+                  <div className="text-center py-6">
+                    <div className="text-sm">Loading weather...</div>
+                  </div>
+                )}
+
+                {weatherError && (
+                  <div className="text-red-600 bg-red-50 p-3 rounded-base border-2 border-red-200 text-sm">
+                    {weatherError}
+                  </div>
+                )}
+
+                {weather &&
+                  !weatherLoading &&
+                  (() => {
+                    const todaysWeather = getCurrentTodaysWeather();
+                    if (!todaysWeather) return null;
+
+                    const WeatherIcon = getWeatherIcon(
+                      todaysWeather.symbolCode
+                    );
 
                     return (
-                      <div
-                        key={event.id}
-                        className="border-2 border-border rounded-base p-4 bg-secondary-background"
-                      >
-                        <div className="flex items-start space-x-3">
-                          <ActivityIcon
-                            size={20}
-                            className="text-main mt-1 flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground leading-snug">
-                              {formatActivityDescription(event)}
-                            </p>
-                            <p className="text-xs text-foreground/60 mt-1">
-                              {formatTimeAgo(event.created_at)}
-                            </p>
+                      <div className="space-y-3">
+                        <div className="text-center border-2 border-border rounded-base p-4 bg-secondary-background">
+                          <div className="flex items-center justify-center mb-2">
+                            <WeatherIcon size={24} className="text-main" />
+                          </div>
+                          <div className="text-2xl font-heading text-main">
+                            {todaysWeather.temperature}°C
                           </div>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="text-center border border-border rounded p-2 bg-secondary-background">
+                            <div className="font-heading text-main">
+                              {todaysWeather.humidity}%
+                            </div>
+                            <div className="text-foreground/70">Humidity</div>
+                          </div>
+                          <div className="text-center border border-border rounded p-2 bg-secondary-background">
+                            <div className="font-heading text-main">
+                              {todaysWeather.windSpeed} m/s
+                            </div>
+                            <div className="text-foreground/70">Wind</div>
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={fetchWeather}
+                          disabled={weatherLoading}
+                          className="text-xs w-full gap-1"
+                        >
+                          <RefreshCw
+                            size={12}
+                            className={weatherLoading ? "animate-spin" : ""}
+                          />
+                          Refresh
+                        </Button>
                       </div>
                     );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  })()}
+              </CardContent>
+            </Card>
 
-        <Card className="border-2 border-border">
-          <CardHeader>
-            <CardTitle className="font-heading text-center">
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button onClick={fetchUselessFact} disabled={loading}>
-                New Fact
-              </Button>
-              <Button onClick={fetchWeather} disabled={weatherLoading}>
-                Refresh Weather
-              </Button>
-              <Button onClick={fetchGitHubActivity} disabled={githubLoading}>
-                Refresh GitHub
-              </Button>
-              <Button
-                variant="reverse"
-                onClick={() =>
-                  window.open("https://github.com/jonasnico", "_blank")
-                }
-              >
-                View GitHub
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="border-2 border-border shadow-sm bg-secondary-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-heading">
+                  GitHub Activity
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Recent commits by{" "}
+                  <Link to="https://github.com/jonasnico">jonasnico</Link>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {githubLoading && (
+                  <div className="text-center py-6">
+                    <div className="text-sm">Loading activity...</div>
+                  </div>
+                )}
+
+                {githubError && (
+                  <div className="text-red-600 bg-red-50 p-3 rounded-base border-2 border-red-200 text-sm">
+                    {githubError}
+                  </div>
+                )}
+
+                {githubActivity.length > 0 && !githubLoading && (
+                  <div className="space-y-2">
+                    {githubActivity.slice(0, 3).map((event) => {
+                      const ActivityIcon = getActivityIcon(event.type);
+
+                      return (
+                        <div
+                          key={event.id}
+                          className="border border-border rounded p-2 bg-secondary-background"
+                        >
+                          <div className="flex items-start space-x-2">
+                            <ActivityIcon
+                              size={14}
+                              className="text-main mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-foreground leading-tight">
+                                {formatActivityDescription(event)}
+                              </p>
+                              <p className="text-xs text-foreground/60">
+                                {formatTimeAgo(event.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={fetchGitHubActivity}
+                      disabled={githubLoading}
+                      className="text-xs w-full gap-1 mt-2"
+                    >
+                      <RefreshCw
+                        size={12}
+                        className={githubLoading ? "animate-spin" : ""}
+                      />
+                      Refresh
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         <div className="text-center text-sm text-foreground border-t-2 border-border pt-4 space-y-1">
           <p>

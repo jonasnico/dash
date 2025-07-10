@@ -11,6 +11,7 @@ This is a React TypeScript project using Vite, built with neobrutalism design pr
 - **Tailwind CSS** for styling
 - **shadcn/ui** components with neobrutalism styling
 - **Lucide React** for icons
+- **Rust WebAssembly** for high-performance password analysis and benchmarking
 
 ## Design System
 
@@ -33,6 +34,13 @@ This is a React TypeScript project using Vite, built with neobrutalism design pr
 - Fetches daily useless facts from https://uselessfacts.jsph.pl/api/v2/facts/random
 - Handle loading states and error cases appropriately
 
+## Performance Features
+
+- **Password Performance Lab** comparing JavaScript vs Rust WebAssembly implementations
+- High-precision benchmarking with statistical analysis and outlier detection
+- WASM module compiled from Rust for optimal performance comparison
+- Located at `/password-performance` route with detailed performance metrics
+
 ## File Structure
 
 - Components in `/src/components/`
@@ -44,9 +52,10 @@ When suggesting code, prioritize neobrutalism design patterns and ensure compone
 
 ## Coding Style Guidelines
 
-- **Prefer self-documenting code over comments** - Use clear, descriptive variable and function names
-- **Choose meaningful names** - Variables and functions should clearly express their purpose
-- **Write clean, readable code** - Code should be easy to understand without extensive comments
-- **Use TypeScript effectively** - Leverage type definitions to make code intent clear
-- **Keep functions small and focused** - Each function should have a single, clear responsibility
-- **Avoid unnecessary comments** - Only add comments for complex business logic or non-obvious decisions
+- **NEVER add comments unless absolutely critical** - Code must be self-documenting through clear naming
+- **Descriptive variable and function names are mandatory** - Names should eliminate the need for comments
+- **Functions must have single, obvious purposes** - Split complex logic into clearly named functions
+- **TypeScript types are documentation** - Use precise types to communicate intent
+- **Readable code over clever code** - Prioritize clarity and maintainability
+- **Zero tolerance for unnecessary comments** - Only document complex business logic or non-obvious technical decisions
+- **Self-documenting code is the highest priority** - Invest time in perfect naming over explanatory comments

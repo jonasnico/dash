@@ -1,22 +1,54 @@
-# A little dashboard for myself, testing the Neobrutalism component library
+# A little app to experiment with different webtech
 
 ## Tech used
 
-- React 19 + TS
-- Vite
-- Tailwind CSS with [https://www.neobrutalism.dev/](neobrutalism) design system
-- shadcn/ui components
-- Lucide React icons
+- **Frontend**: React 19 + TypeScript + Vite
+- **Styling**: Tailwind CSS with neobrutalism design variables
+- **WebAssembly**: Rust compiled to WASM using wasm-bindgen
+- **Routing**: React Router DOM
+- **Icons**: Lucide React
 
-## Development
+### Installation
+
+1. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+2. **Build WASM module**
+
+   ```bash
+   cd wasm
+   wasm-pack build --target web --out-dir pkg
+   ```
+
+3. **Copy WASM files**
+
+   ```bash
+   cp wasm/pkg/* public/wasm/
+   cp wasm/pkg/* src/wasm/
+   ```
+
+4. **Start development server**
+
+   ```bash
+   npm run dev
+   ```
+
+## Deploy
+
+### Build for Production
 
 ```bash
-npm install
-npm run dev
-```
+# Build WASM
+cd wasm && wasm-pack build --target web
 
-## Deployment
-
-```bash
+# Build React app
 npm run build
 ```
+
+### Environment Setup
+
+- Ensure WASM files are served with correct MIME types
+- Configure server to handle `.wasm` files as `application/wasm`

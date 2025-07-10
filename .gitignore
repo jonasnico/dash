@@ -12,6 +12,13 @@ dist
 dist-ssr
 *.local
 
+# Rust build artifacts
+wasm/target/
+wasm-password/target/
+**/target/
+Cargo.lock
+public/wasm*/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

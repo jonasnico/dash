@@ -1,0 +1,5 @@
+# Allow WASM build artifacts
+!*.js
+!*.wasm
+!*.d.ts
+!package.json
