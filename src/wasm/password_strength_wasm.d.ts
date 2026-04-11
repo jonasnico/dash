@@ -1,5 +1,4 @@
 /* tslint:disable */
-/* eslint-disable */
 export function analyze_password_score(password: string): number;
 export function get_strength_level(score: number): string;
 export function calculate_entropy(password: string): number;

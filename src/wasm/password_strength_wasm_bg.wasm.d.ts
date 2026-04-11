@@ -1,5 +1,4 @@
 /* tslint:disable */
-/* eslint-disable */
 export const memory: WebAssembly.Memory;
 export const analyze_password_score: (a: number, b: number) => number;
 export const get_strength_level: (a: number) => [number, number];
