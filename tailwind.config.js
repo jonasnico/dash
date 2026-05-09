@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        base: ["var(--font-weight-base)"],
-        heading: ["var(--font-weight-heading)"],
+        base: ["DM Sans", "sans-serif"],
+        heading: ["Archivo Black", "sans-serif"],
       },
       borderRadius: {
         base: "var(--radius-base)",

@@ -3,54 +3,50 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --border-radius: 5px;
-  --box-shadow-x: 4px;
-  --box-shadow-y: 4px;
-  --reverse-box-shadow-x: -4px;
-  --reverse-box-shadow-y: -4px;
+  --border-radius: 0px;
+  --box-shadow-x: 5px;
+  --box-shadow-y: 5px;
+  --reverse-box-shadow-x: -5px;
+  --reverse-box-shadow-y: -5px;
 
-  --heading-font-weight: 700;
-  --base-font-weight: 500;
+  --heading-font-weight: 900;
+  --base-font-weight: 400;
 
-  --background: oklch(93.46% 0.0304 254.32);
-  --secondary-background: oklch(100% 0 0);
-  --foreground: oklch(0% 0 0);
-  --main-foreground: oklch(0% 0 0);
+  --background: #ffffff;
+  --secondary-background: #f2f2f2;
+  --foreground: #000000;
+  --main-foreground: #ffffff;
 
-  --main: oklch(67.47% 0.1725 259.61);
-  --performance-card: oklch(98% 0.02 45);
-  --performance-card-foreground: oklch(15% 0 0);
-  --secondary-card: oklch(100% 0 0);
-  --border: oklch(0% 0 0);
-  --ring: oklch(0% 0 0);
-  --overlay: oklch(0% 0 0 / 0.8);
+  --main: #ff2d2d;
+  --performance-card: #ff2d2d;
+  --performance-card-foreground: #ffffff;
+  --secondary-card: #ffffff;
+  --border: #000000;
+  --ring: #000000;
+  --overlay: rgba(0, 0, 0, 0.8);
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 
-  --chart-1: oklch(67.47% 0.1726 259.49);
-  --chart-2: oklch(67.28% 0.2147 24.22);
-  --chart-3: oklch(86.03% 0.176 92.36);
-  --chart-4: oklch(79.76% 0.2044 153.08);
-  --chart-5: oklch(66.34% 0.1806 277.2);
+  --chart-1: #ff2d2d;
+  --chart-2: #ff6b2d;
+  --chart-3: #ffb02d;
+  --chart-4: #2dcc70;
+  --chart-5: #2d8fff;
   --chart-active-dot: #000;
 }
 
 .dark {
-  --background: oklch(29.12% 0.0633 270.86);
-  --secondary-background: oklch(23.93% 0 0);
-  --foreground: oklch(92.49% 0 0);
-
-  --main: oklch(67.47% 0.1725 259.61);
-  --main-foreground: oklch(0% 0 0);
-  --performance-card: oklch(25% 0.02 260);
-  --performance-card-foreground: oklch(92% 0 0);
-  --secondary-card: oklch(20% 0 0);
-
-  --border: oklch(0% 0 0);
-  --ring: oklch(100% 0 0);
-
+  --background: #0a0a0a;
+  --secondary-background: #141414;
+  --foreground: #ffffff;
+  --main: #ff2d2d;
+  --main-foreground: #ffffff;
+  --performance-card: #ff2d2d;
+  --performance-card-foreground: #ffffff;
+  --secondary-card: #141414;
+  --border: #ffffff;
+  --ring: #ffffff;
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-
   --chart-active-dot: #fff;
 }
 
