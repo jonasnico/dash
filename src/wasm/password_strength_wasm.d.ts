@@ -1,7 +1,10 @@
 /* tslint:disable */
+/* eslint-disable */
 export function analyze_password_score(password: string): number;
 export function get_strength_level(score: number): string;
 export function calculate_entropy(password: string): number;
+export function get_time_to_crack(password: string): string;
+export function get_feedback(password: string): string;
 export function benchmark_computation(password: string, iterations: number): number;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -11,6 +14,8 @@ export interface InitOutput {
   readonly analyze_password_score: (a: number, b: number) => number;
   readonly get_strength_level: (a: number) => [number, number];
   readonly calculate_entropy: (a: number, b: number) => number;
+  readonly get_time_to_crack: (a: number, b: number) => [number, number];
+  readonly get_feedback: (a: number, b: number) => [number, number];
   readonly benchmark_computation: (a: number, b: number, c: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;

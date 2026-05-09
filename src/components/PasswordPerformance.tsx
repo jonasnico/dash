@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import Button from "@/components/ui/button";
 import {
-  ArrowLeft,
   Zap,
   Timer,
   Activity,
   TrendingUp,
   RefreshCw,
+  Shuffle,
+  Copy,
+  Check,
+  LayoutGrid,
 } from "lucide-react";
 import type {
   PasswordStrengthResult,
@@ -16,6 +18,7 @@ import type {
   BenchmarkStats,
 } from "@/types/password";
 import ThemeToggle from "./ThemeToggle";
+import WidgetDrawer from "./WidgetDrawer";
 import { loadPasswordWasm } from "@/utils/wasmLoader";
 import { analyzePasswordJS } from "@/utils/passwordAnalysis";
 
@@ -73,86 +76,133 @@ const strengthConfig: Record<
   },
 };
 
-const StatRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between items-baseline border-b border-border/20 py-2">
-    <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
-      {label}
-    </span>
-    <span className="font-heading text-sm">{value}</span>
+const StatRow = ({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description?: string;
+}) => (
+  <div className="border-b border-border/20 py-2.5">
+    <div className="flex justify-between items-baseline">
+      <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+        {label}
+      </span>
+      <span className="font-heading text-sm">{value}</span>
+    </div>
+    {description && (
+      <p className="text-[10px] text-foreground/25 mt-0.5 leading-snug italic">
+        {description}
+      </p>
+    )}
   </div>
 );
 
 const StrengthPanel = ({
-  result,
-  label,
-  accent,
+  primary,
+  jsScore,
+  wasmScore,
+  implementationLabel,
 }: {
-  result: PasswordStrengthResult;
-  label: string;
-  accent: string;
+  primary: PasswordStrengthResult;
+  jsScore: number | null;
+  wasmScore: number | null;
+  implementationLabel: string;
 }) => {
-  const config =
-    strengthConfig[result.strength_level] ?? strengthConfig["Fair"];
-  const scorePercent = (result.score / result.max_score) * 100;
+  const config = strengthConfig[primary.strength_level] ?? strengthConfig["Fair"];
+  const scorePercent = (primary.score / primary.max_score) * 100;
+  const implementationsAgree = jsScore !== null && wasmScore !== null && jsScore === wasmScore;
 
   return (
-    <div className="border-4 border-border shadow-shadow bg-secondary-background flex flex-col">
+    <div className="border-4 border-border shadow-shadow bg-secondary-background">
       <div className="border-b-4 border-border px-6 py-4 flex items-center justify-between">
         <span className="font-heading text-xs tracking-[0.2em] uppercase">
-          {label}
+          Strength Analysis
         </span>
         <span className="text-[10px] tracking-[0.2em] uppercase text-foreground/30">
-          {accent}
+          {implementationLabel}
         </span>
       </div>
-      <div className="p-6 flex flex-col gap-5 flex-1">
-        <div
-          className={`${config.color} ${config.textColor} px-4 py-3 flex items-center justify-between`}
-        >
-          <span className="font-heading text-lg tracking-widest">
-            {config.label}
-          </span>
-          <span className="font-heading text-sm opacity-70">
-            {result.score}/{result.max_score}
-          </span>
-        </div>
 
-        <div className="space-y-1">
-          <div className="flex justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
-              Score
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-start">
+          <div
+            className={`${config.color} ${config.textColor} px-8 py-6 flex flex-col items-center justify-center min-w-40`}
+          >
+            <span className="font-heading text-2xl tracking-widest leading-tight">
+              {config.label}
             </span>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
-              {scorePercent.toFixed(0)}%
+            <span className="font-heading text-4xl mt-1">{primary.score}</span>
+            <span className="text-[10px] uppercase tracking-widest opacity-60 mt-1">
+              / {primary.max_score}
             </span>
           </div>
-          <div className="w-full h-4 border-2 border-border bg-background overflow-hidden">
-            <div
-              className="h-full transition-all duration-500"
-              style={{
-                width: `${scorePercent}%`,
-                backgroundColor: config.barColor,
-              }}
-            />
+
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex justify-between mb-2">
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+                    Score
+                  </span>
+                  <p className="text-[10px] italic text-foreground/25 mt-0.5 leading-snug">
+                    Entropy × character variety − pattern penalties
+                  </p>
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+                  {scorePercent.toFixed(0)}%
+                </span>
+              </div>
+              <div className="w-full h-5 border-2 border-border bg-background overflow-hidden">
+                <div
+                  className="h-full transition-all duration-700"
+                  style={{ width: `${scorePercent}%`, backgroundColor: config.barColor }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <StatRow
+                label="Entropy"
+                value={`${primary.entropy.toFixed(1)} bits`}
+                description="Randomness of the password. Each +1 bit doubles the guessing difficulty."
+              />
+              <StatRow
+                label="Time to crack"
+                value={primary.time_to_crack}
+                description="Estimated brute-force time at 1 billion guesses/second."
+              />
+            </div>
           </div>
         </div>
 
-        <div className="space-y-0">
-          <StatRow
-            label="Entropy"
-            value={`${result.entropy.toFixed(1)} bits`}
-          />
-          <StatRow label="Time to crack" value={result.time_to_crack} />
-        </div>
-
-        {result.feedback !== "Great password!" &&
-          result.feedback !== "Excellent password!" && (
+        {primary.feedback &&
+          primary.feedback !== "Great password!" &&
+          primary.feedback !== "Excellent password!" &&
+          !primary.feedback.startsWith("Good password") && (
             <div className="border-l-4 border-main pl-4 py-1">
               <p className="text-xs leading-relaxed text-foreground/70">
-                {result.feedback}
+                {primary.feedback}
               </p>
             </div>
           )}
+
+        {implementationsAgree !== null && (
+          <div className="flex items-center gap-3 border-t-2 border-border pt-4">
+            <div
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                implementationsAgree ? "bg-[#2DCC70]" : "bg-main"
+              }`}
+            />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+              {implementationsAgree
+                ? `JS and WASM agree — both scored ${primary.score}/100`
+                : `JS scored ${jsScore}/100 · WASM scored ${wasmScore}/100`}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -161,15 +211,20 @@ const StrengthPanel = ({
 const PasswordPerformance: React.FC = () => {
   const [password, setPassword] = useState("MySecurePassword123!");
   const [wasmModule, setWasmModule] = useState<WasmModule | null>(null);
-  const [wasmResult, setWasmResult] = useState<PasswordStrengthResult | null>(
-    null
-  );
-  const [jsResult, setJsResult] = useState<PasswordStrengthResult | null>(
-    null
-  );
+  const [wasmLoaded, setWasmLoaded] = useState(false);
+  const [wasmResult, setWasmResult] = useState<PasswordStrengthResult | null>(null);
+  const [jsResult, setJsResult] = useState<PasswordStrengthResult | null>(null);
   const [benchmark, setBenchmark] = useState<BenchmarkResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const [genLength, setGenLength] = useState(16);
+  const [genUpper, setGenUpper] = useState(true);
+  const [genLower, setGenLower] = useState(true);
+  const [genDigits, setGenDigits] = useState(true);
+  const [genSymbols, setGenSymbols] = useState(true);
 
   useEffect(() => {
     const initWasm = async () => {
@@ -177,6 +232,7 @@ const PasswordPerformance: React.FC = () => {
       try {
         const wasm = await loadPasswordWasm();
         setWasmModule(wasm);
+        setWasmLoaded(true);
       } catch (err) {
         setError("Failed to load WebAssembly module");
         console.error(err);
@@ -187,12 +243,7 @@ const PasswordPerformance: React.FC = () => {
     initWasm();
   }, []);
 
-  const isUsingWasm =
-    wasmResult?.feedback?.includes("WASM") ||
-    wasmResult?.feedback?.includes("WebAssembly");
-  const implementationName = isUsingWasm
-    ? "Rust WebAssembly"
-    : "JavaScript (Fallback)";
+  const implementationName = wasmLoaded ? "Rust WebAssembly" : "JavaScript (Fallback)";
 
   const removeOutliers = useCallback((times: number[]): number[] => {
     if (times.length < 4) return times;
@@ -301,6 +352,34 @@ const PasswordPerformance: React.FC = () => {
     if (wasmModule && password) analyzePassword();
   }, [wasmModule, password, analyzePassword]);
 
+  const generateRandomPassword = useCallback(() => {
+    const charsets = [
+      genLower ? "abcdefghijklmnopqrstuvwxyz" : "",
+      genUpper ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ" : "",
+      genDigits ? "0123456789" : "",
+      genSymbols ? "!@#$%^&*()_+-=[]{}|;:,.<>?" : "",
+    ].join("");
+
+    if (!charsets) return;
+
+    const bytes = new Uint8Array(genLength * 2);
+    crypto.getRandomValues(bytes);
+    const maxValid = 256 - (256 % charsets.length);
+    const result: string[] = [];
+    for (const byte of bytes) {
+      if (byte < maxValid && result.length < genLength) {
+        result.push(charsets[byte % charsets.length]);
+      }
+    }
+    setPassword(result.join(""));
+  }, [genLength, genLower, genUpper, genDigits, genSymbols]);
+
+  const copyToClipboard = useCallback(async () => {
+    await navigator.clipboard.writeText(password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [password]);
+
   const examplePasswords = [
     "password123",
     "MyStr0ng!P@ssw0rd",
@@ -314,40 +393,37 @@ const PasswordPerformance: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <WidgetDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+
       <header className="border-b-4 border-border px-6 md:px-12 py-6">
         <div className="max-w-7xl mx-auto flex items-end justify-between gap-4">
-          <div className="flex items-end gap-6">
-            <Link to="/">
-              <Button
-                variant="neutral"
-                size="sm"
-                className="gap-2 text-xs uppercase tracking-widest mb-1"
-              >
-                <ArrowLeft size={14} />
-                Back
-              </Button>
-            </Link>
-            <div>
-              <p className="font-heading text-xs text-main tracking-[0.3em] uppercase mb-1">
-                02 — Performance Lab
-              </p>
-              <h1 className="font-heading text-[clamp(2rem,6vw,5rem)] leading-none tracking-tight">
-                Password Benchmark
-              </h1>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2 pb-1">
-            <ThemeToggle />
-            <p className="text-[10px] tracking-[0.25em] uppercase text-foreground/30 hidden sm:block">
-              JS vs Rust WASM
+          <div>
+            <p className="font-heading text-xs text-main tracking-[0.3em] uppercase mb-1">
+              01 — The Dash
             </p>
+            <h1 className="font-heading text-[clamp(2.5rem,7vw,6rem)] leading-none tracking-tight">
+              Password Lab
+            </h1>
+          </div>
+          <div className="flex items-center gap-3 pb-1">
+            <Button
+              variant="neutral"
+              size="sm"
+              onClick={() => setDrawerOpen(true)}
+              className="gap-2 text-xs uppercase tracking-widest"
+              aria-label="Open widgets"
+            >
+              <LayoutGrid size={14} />
+              <span className="hidden sm:inline">Widgets</span>
+            </Button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 md:px-12 py-10 space-y-12">
         <section>
-          <SectionLabel number="01" title="Input" />
+          <SectionLabel number="02" title="Input" />
           <div className="border-4 border-border shadow-shadow bg-secondary-background p-6 md:p-8 space-y-6">
             <div className="space-y-2">
               <label
@@ -356,14 +432,73 @@ const PasswordPerformance: React.FC = () => {
               >
                 Password
               </label>
-              <input
-                id="password"
-                type="text"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-4 border-border bg-background text-foreground font-heading text-lg placeholder-foreground/30 focus:border-main outline-none transition-colors"
-                placeholder="Enter password to analyze..."
-              />
+              <div className="flex gap-2">
+                <input
+                  id="password"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-1 px-4 py-3 border-4 border-border bg-background text-foreground font-heading text-lg placeholder-foreground/30 focus:border-main outline-none transition-colors"
+                  placeholder="Enter password to analyze..."
+                />
+                <Button
+                  variant="neutral"
+                  size="icon"
+                  onClick={copyToClipboard}
+                  aria-label="Copy to clipboard"
+                  className="shrink-0 h-auto aspect-square"
+                >
+                  {copied ? <Check size={16} className="text-main" /> : <Copy size={16} />}
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-2 border-border bg-background p-4 space-y-4">
+              <span className="font-heading text-[10px] uppercase tracking-[0.3em] text-foreground/40 block">
+                Generate random
+              </span>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] uppercase tracking-widest text-foreground/40">Length</label>
+                  <input
+                    type="number"
+                    min={6}
+                    max={64}
+                    value={genLength}
+                    onChange={(e) => setGenLength(Math.max(6, Math.min(64, Number(e.target.value))))}
+                    className="w-14 px-2 py-1 border-2 border-border bg-secondary-background text-foreground font-heading text-sm text-center outline-none focus:border-main transition-colors"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { label: "A–Z", value: genUpper, setter: setGenUpper },
+                    { label: "a–z", value: genLower, setter: setGenLower },
+                    { label: "0–9", value: genDigits, setter: setGenDigits },
+                    { label: "!@#", value: genSymbols, setter: setGenSymbols },
+                  ].map(({ label, value, setter }) => (
+                    <button
+                      key={label}
+                      onClick={() => setter((v) => !v)}
+                      className={`px-3 py-1 border-2 border-border font-heading text-xs uppercase tracking-wider transition-colors ${
+                        value
+                          ? "bg-main text-white"
+                          : "bg-background text-foreground/40"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={generateRandomPassword}
+                  className="gap-2 text-xs uppercase tracking-widest ml-auto"
+                >
+                  <Shuffle size={13} />
+                  Generate
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -406,7 +541,7 @@ const PasswordPerformance: React.FC = () => {
 
         {benchmark && (
           <section>
-            <SectionLabel number="02" title="Performance Benchmark" />
+            <SectionLabel number="03" title="Performance Benchmark" />
 
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
@@ -416,21 +551,26 @@ const PasswordPerformance: React.FC = () => {
                     label: "JavaScript",
                     value: `${benchmark.jsTime.toFixed(3)}ms`,
                     sub: "median time",
+                    description: "Native browser JS engine",
+                    highlight: false,
                   },
                   {
                     icon: <Zap size={16} />,
                     label: implementationName,
                     value: `${benchmark.wasmTime.toFixed(3)}ms`,
                     sub: "median time",
+                    description: "Compiled Rust in browser sandbox",
+                    highlight: false,
                   },
                   {
                     icon: <TrendingUp size={16} />,
                     label: "Speedup",
                     value: `${benchmark.speedup.toFixed(2)}×`,
                     sub: `${benchmark.iterations.toLocaleString()} iterations`,
+                    description: "WASM vs JS median · >1× = WASM wins",
                     highlight: benchmark.speedup > 1,
                   },
-                ].map(({ icon, label, value, sub, highlight }) => (
+                ].map(({ icon, label, value, sub, description, highlight }) => (
                   <div
                     key={label}
                     className={`border-4 border-border shadow-shadow p-6 flex flex-col gap-2 ${
@@ -453,14 +593,26 @@ const PasswordPerformance: React.FC = () => {
                     >
                       {sub}
                     </div>
+                    <div
+                      className={`text-[10px] italic leading-snug ${
+                        highlight ? "opacity-50" : "text-foreground/25"
+                      }`}
+                    >
+                      {description}
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="border-4 border-border bg-secondary-background p-6 space-y-4">
-                <span className="font-heading text-[10px] uppercase tracking-[0.2em] text-foreground/40">
-                  Visual comparison
-                </span>
+                <div>
+                  <span className="font-heading text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+                    Visual comparison
+                  </span>
+                  <p className="text-[10px] italic text-foreground/25 mt-0.5">
+                    Shorter bar = faster execution. Median across {benchmark.iterations.toLocaleString()} rounds.
+                  </p>
+                </div>
                 {(() => {
                   const maxTime = Math.max(
                     benchmark.jsTime,
@@ -507,7 +659,7 @@ const PasswordPerformance: React.FC = () => {
 
         {benchmark?.jsStats && benchmark?.wasmStats && (
           <section>
-            <SectionLabel number="03" title="Statistical Detail" />
+            <SectionLabel number="04" title="Statistical Detail" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
@@ -545,24 +697,29 @@ const PasswordPerformance: React.FC = () => {
                     <StatRow
                       label="Median"
                       value={`${stats.median.toFixed(3)}ms`}
+                      description="Middle value after sorting — most resistant to outliers."
                     />
                     <StatRow
                       label="Mean"
                       value={`${stats.mean.toFixed(3)}ms`}
+                      description="Average across all valid rounds."
                     />
-                    <StatRow label="Min" value={`${stats.min.toFixed(3)}ms`} />
-                    <StatRow label="Max" value={`${stats.max.toFixed(3)}ms`} />
+                    <StatRow label="Min" value={`${stats.min.toFixed(3)}ms`} description="Fastest observed round." />
+                    <StatRow label="Max" value={`${stats.max.toFixed(3)}ms`} description="Slowest observed round." />
                     <StatRow
                       label="Valid samples"
                       value={String(stats.count)}
+                      description="Rounds remaining after outlier removal."
                     />
                     <StatRow
                       label="Outliers removed"
                       value={String(stats.outliers)}
+                      description="Extreme values excluded via IQR method."
                     />
                     <StatRow
                       label="Consistency"
                       value={`${consistency.toFixed(1)}%`}
+                      description="Lower spread = more stable. 100% = perfectly consistent."
                     />
                   </div>
                 </div>
@@ -578,8 +735,8 @@ const PasswordPerformance: React.FC = () => {
               </div>
               <div className="flex gap-8">
                 {[
-                  { label: "JS Samples", value: benchmark.jsStats.count },
-                  { label: "WASM Samples", value: benchmark.wasmStats.count },
+                  { label: "JS Samples", value: benchmark.jsStats.count, description: "Valid rounds after IQR filter" },
+                  { label: "WASM Samples", value: benchmark.wasmStats.count, description: "Valid rounds after IQR filter" },
                   {
                     label: "Rating",
                     value:
@@ -587,14 +744,18 @@ const PasswordPerformance: React.FC = () => {
                       benchmark.wasmStats.count >= 10
                         ? "HIGH"
                         : "MEDIUM",
+                    description: "HIGH = 10+ valid samples per implementation",
                   },
-                ].map(({ label, value }) => (
+                ].map(({ label, value, description }) => (
                   <div key={label} className="text-right">
                     <div className="font-heading text-lg leading-none">
                       {value}
                     </div>
                     <div className="text-[10px] uppercase tracking-[0.15em] text-foreground/30 mt-0.5">
                       {label}
+                    </div>
+                    <div className="text-[10px] italic text-foreground/20 mt-0.5 leading-snug">
+                      {description}
                     </div>
                   </div>
                 ))}
@@ -605,23 +766,13 @@ const PasswordPerformance: React.FC = () => {
 
         {(jsResult || wasmResult) && (
           <section>
-            <SectionLabel number="04" title="Strength Analysis" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {jsResult && (
-                <StrengthPanel
-                  result={jsResult}
-                  label="JavaScript Analysis"
-                  accent="JS"
-                />
-              )}
-              {wasmResult && (
-                <StrengthPanel
-                  result={wasmResult}
-                  label={implementationName}
-                  accent="WASM"
-                />
-              )}
-            </div>
+            <SectionLabel number="05" title="Strength Analysis" />
+            <StrengthPanel
+              primary={wasmResult ?? jsResult!}
+              jsScore={jsResult?.score ?? null}
+              wasmScore={wasmResult?.score ?? null}
+              implementationLabel={implementationName}
+            />
           </section>
         )}
       </main>

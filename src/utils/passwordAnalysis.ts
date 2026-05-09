@@ -1,98 +1,104 @@
 import type { PasswordStrengthResult } from "@/types/password";
 
-export function analyzePasswordJS(password: string): PasswordStrengthResult {
-  let score = 0;
-  const maxScore = 100;
-  const feedbackParts: string[] = [];
+const SYMBOL_REGEX = /[^a-zA-Z0-9]/;
+const KEYBOARD_PATTERNS = ["qwerty", "asdfgh", "zxcvbn", "123456", "654321", "abcdef"];
 
-  const length = password.length;
-
-  if (length >= 8) {
-    score += 35;
-  } else {
-    score += length * 4;
-    feedbackParts.push("Use at least 8 characters");
-  }
-
-  // Character variety checks - match WASM logic exactly
+function charsetSize(password: string): number {
   const hasLower = /[a-z]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
-  const hasDigit = /\d/.test(password);
-  const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  const hasSymbol = SYMBOL_REGEX.test(password);
+  return (hasLower ? 26 : 0) + (hasUpper ? 26 : 0) + (hasDigit ? 10 : 0) + (hasSymbol ? 32 : 0);
+}
 
-  // Score character types (10 points each, matching WASM exactly)
-  if (hasLower) score += 10;
-  if (hasUpper) score += 10;
-  if (hasDigit) score += 10;
-  if (hasSymbol) score += 10;
-
-  if (!hasLower) feedbackParts.push("Add lowercase letters");
-  if (!hasUpper) feedbackParts.push("Add uppercase letters");
-  if (!hasDigit) feedbackParts.push("Add numbers");
-  if (!hasSymbol) feedbackParts.push("Add special characters");
-
-  // Pattern penalties to match WASM
-  const lowerPassword = password.toLowerCase();
-  if (lowerPassword.includes("password")) {
-    score -= 20;
-    feedbackParts.push("Avoid common passwords");
+function hasRepeatedChars(password: string): boolean {
+  for (let i = 0; i < password.length - 2; i++) {
+    if (password[i] === password[i + 1] && password[i + 1] === password[i + 2]) return true;
   }
-  if (lowerPassword.includes("123")) {
-    score -= 10;
-    feedbackParts.push("Avoid common sequences");
+  return false;
+}
+
+function hasKeyboardPattern(lower: string): boolean {
+  return KEYBOARD_PATTERNS.some((p) => lower.includes(p));
+}
+
+function computeScore(password: string): number {
+  if (!password) return 0;
+
+  const lower = password.toLowerCase();
+  const cs = charsetSize(password);
+  const entropy = cs > 0 ? password.length * Math.log2(cs) : 0;
+  const entropyScore = Math.min(80, entropy * 0.8);
+
+  const hasLower = /[a-z]/.test(password);
+  const hasUpper = /[A-Z]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  const hasSymbol = SYMBOL_REGEX.test(password);
+  const varietyBonus = [hasLower, hasUpper, hasDigit, hasSymbol].filter(Boolean).length * 5;
+
+  let penalties = 0;
+  if (lower.includes("password")) penalties += 20;
+  if (password.includes("123") || password.includes("1234")) penalties += 10;
+  if (hasKeyboardPattern(lower)) penalties += 10;
+  if (hasRepeatedChars(password)) penalties += 10;
+
+  return Math.max(0, Math.min(100, Math.round(entropyScore + varietyBonus - penalties)));
+}
+
+function strengthLevel(score: number): string {
+  if (score < 30) return "Very Weak";
+  if (score < 50) return "Weak";
+  if (score < 70) return "Fair";
+  if (score < 85) return "Strong";
+  return "Very Strong";
+}
+
+function timeToCrack(password: string): string {
+  const cs = charsetSize(password);
+  if (cs === 0) return "Instantly";
+  const combinations = Math.pow(cs, password.length);
+  const seconds = combinations / (2 * 1_000_000_000);
+  if (seconds < 1) return "Instantly";
+  if (seconds < 60) return `${seconds.toFixed(1)} seconds`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)} minutes`;
+  if (seconds < 86400) return `${(seconds / 3600).toFixed(1)} hours`;
+  if (seconds < 31_536_000) return `${(seconds / 86400).toFixed(1)} days`;
+  if (seconds < 31_536_000 * 1000) return `${(seconds / 31_536_000).toFixed(1)} years`;
+  return "Centuries";
+}
+
+function buildFeedback(password: string, score: number): string {
+  const lower = password.toLowerCase();
+  const parts: string[] = [];
+
+  if (lower.includes("password")) parts.push("Avoid the word 'password'");
+  if (password.includes("123")) parts.push("Avoid sequential numbers");
+  if (hasKeyboardPattern(lower)) parts.push("Avoid keyboard patterns (qwerty, asdf)");
+  if (hasRepeatedChars(password)) parts.push("Avoid repeating characters");
+  if (password.length < 8) parts.push("Use at least 8 characters");
+  if (!/[a-z]/.test(password)) parts.push("Add lowercase letters");
+  if (!/[A-Z]/.test(password)) parts.push("Add uppercase letters");
+  if (!/[0-9]/.test(password)) parts.push("Add numbers");
+  if (!SYMBOL_REGEX.test(password)) parts.push("Add special characters");
+
+  if (parts.length === 0) {
+    return score >= 85 ? "Excellent password!" : "Good password — consider making it longer for extra security";
   }
+  return parts.join(". ");
+}
 
-  // Additional computational work to match WASM exactly
-  let hash = score;
-  for (let i = 0; i < password.length; i++) {
-    const byte = password.charCodeAt(i);
-    hash = (hash * 31 + byte) >>> 0;
-    hash = (hash * 1103515245 + 12345) >>> 0;
-    // Additional computation matching WASM exactly
-    Math.sqrt(byte * (i + 1));
-  }
-
-  score = Math.max(0, Math.min(100, score));
-
-  const strengthLevel =
-    score < 30
-      ? "Very Weak"
-      : score < 50
-      ? "Weak"
-      : score < 70
-      ? "Fair"
-      : score < 85
-      ? "Strong"
-      : "Very Strong";
-
-  const charsetSize =
-    (hasLower ? 26 : 0) +
-    (hasUpper ? 26 : 0) +
-    (hasDigit ? 10 : 0) +
-    (hasSymbol ? 32 : 0);
-  const entropy = charsetSize > 0 ? length * Math.log2(charsetSize) : 0;
-
-  const crackTimeSeconds = Math.pow(charsetSize, length) / (2 * 1000000000);
-  const timeToCrack =
-    crackTimeSeconds < 1
-      ? "Instantly"
-      : crackTimeSeconds < 60
-      ? `${crackTimeSeconds.toFixed(1)} seconds`
-      : crackTimeSeconds < 3600
-      ? `${(crackTimeSeconds / 60).toFixed(1)} minutes`
-      : crackTimeSeconds < 86400
-      ? `${(crackTimeSeconds / 3600).toFixed(1)} hours`
-      : crackTimeSeconds < 31536000
-      ? `${(crackTimeSeconds / 86400).toFixed(1)} days`
-      : `${(crackTimeSeconds / 31536000).toFixed(1)} years`;
+export function analyzePasswordJS(password: string): PasswordStrengthResult {
+  const score = computeScore(password);
+  const cs = charsetSize(password);
+  const entropy = cs > 0 ? password.length * Math.log2(cs) : 0;
 
   return {
     score,
-    max_score: maxScore,
-    strength_level: strengthLevel,
-    feedback:
-      feedbackParts.length > 0 ? feedbackParts.join(", ") : "Great password!",
+    max_score: 100,
+    strength_level: strengthLevel(score),
+    feedback: buildFeedback(password, score),
     entropy,
-    time_to_crack: timeToCrack,
+    time_to_crack: timeToCrack(password),
   };
 }
+
