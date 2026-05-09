@@ -1,61 +1,89 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
-# Neobrutalism Dashboard Project
+# The Dash — Password Performance Lab
 
-This is a React TypeScript project using Vite, built with neobrutalism design principles and components based on shadcn/ui.
+A React/TypeScript app focused on benchmarking JavaScript vs Rust WebAssembly for password strength analysis. Uses a Swiss Poster Brutalism design system built on top of shadcn/ui + Tailwind CSS v4.
+
+## Package Manager
+
+**Use pnpm exclusively.** Never suggest `npm install` or `yarn`. Always use `pnpm install`, `pnpm dev`, `pnpm build`, etc.
 
 ## Key Technologies
 
 - **React 19** with TypeScript
 - **Vite** for build tooling
-- **Tailwind CSS** for styling
-- **shadcn/ui** components with neobrutalism styling
+- **Tailwind CSS v4** for styling
+- **shadcn/ui** components with custom Swiss Brutalism overrides
 - **Lucide React** for icons
-- **Rust WebAssembly** for high-performance password analysis and benchmarking
+- **Rust + wasm-pack** compiled to WebAssembly (`wasm-password/src/lib.rs`)
+- **React Router DOM** — single route `/` → `PasswordPerformance`
 
-## Design System
+## Design System — Swiss Poster Brutalism
 
-- Uses neobrutalism design principles with bold borders, box shadows, and high contrast
-- Color system based on CSS custom properties: `--main`, `--background`, `--foreground`, `--border`, etc.
-- Font weights: `--font-weight-heading` and `--font-weight-base`
-- Border radius: `--radius-base`
-- Box shadows: `--shadow-shadow`
+All tokens are in `src/index.css`:
 
-## Component Guidelines
+- `--border-radius: 0px` — sharp corners everywhere
+- `--main: #FF2D2D` — red accent
+- `--background: #FFFFFF` / `--foreground: #000000` — pure black/white
+- `--shadow-shadow: 5px 5px 0px 0px var(--border)` — hard drop shadow
+- Dark mode: `--border: #FFFFFF` (white borders on dark background)
+- Typography: Archivo Black (`font-heading`) + DM Sans (`font-base`)
 
-- All UI components should use the neobrutalism styling variables
-- Components should have bold 2px borders (`border-2 border-border`)
-- Use `rounded-base` for border radius
-- Apply `shadow-shadow` for consistent box shadows
-- Use semantic color classes: `bg-main`, `bg-secondary-background`, `text-foreground`, `text-main-foreground`
+Component rules:
+- `border-4 border-border` (4px solid borders), not `border-2`
+- `shadow-shadow` for elevated cards
+- `bg-main text-white` for highlighted/active states
+- `bg-secondary-background` for card backgrounds
+- Section labels: `<SectionLabel number="01" title="Section Name" />`
+- Uppercase tracking labels: `text-[10px] uppercase tracking-[0.2em] text-foreground/40`
+
+## Architecture
+
+### Entry point
+- `src/App.tsx` — single route `/` → `PasswordPerformance`
+
+### Main page
+- `src/components/PasswordPerformance.tsx` — the entire app UI
+  - Sections 02–05: Input, Benchmark, Statistical Detail, Strength Analysis
+  - Random password generator using `crypto.getRandomValues` with rejection sampling
+  - Widget drawer trigger in the header
+
+### Supporting components
+- `src/components/WidgetDrawer.tsx` — slide-out panel with weather/fact/GitHub widgets (lazy-loaded on first open)
+
+### Password analysis
+- `src/utils/passwordAnalysis.ts` — JS implementation
+- `src/utils/wasmLoader.ts` — loads WASM module, wraps exports, provides fallback
+- `src/wasm/` — compiled WASM output (do not edit directly)
+
+### WASM source
+- `wasm-password/src/lib.rs` — Rust implementation
+- Build: `PATH="$HOME/.cargo/bin:..." pnpm build:wasm` then `cp public/wasm-real/* src/wasm/`
+- **Important**: system may have Homebrew `rustc` at `/opt/homebrew/bin/rustc` which lacks `wasm32-unknown-unknown`. Always prefix PATH with rustup's bin.
+
+### Scoring algorithm (JS and Rust must stay in sync)
+```
+charset_size = (hasLower?26:0) + (hasUpper?26:0) + (hasDigit?10:0) + (hasSymbol?32:0)
+entropy = length * log2(charset_size)
+entropy_score = min(80, entropy * 0.8)
+variety_bonus = count(categories_present) * 5  (max 20)
+penalties: "password" −20, "123" −10, keyboard patterns −10, 3+ repeated chars −10
+score = clamp(0, 100, entropy_score + variety_bonus − penalties)
+```
+Strength thresholds: <30 Very Weak, 30–49 Weak, 50–69 Fair, 70–84 Strong, 85+ Very Strong
 
 ## API Integration
 
-- Fetches daily useless facts from https://uselessfacts.jsph.pl/api/v2/facts/random
-- Handle loading states and error cases appropriately
-
-## Performance Features
-
-- **Password Performance Lab** comparing JavaScript vs Rust WebAssembly implementations
-- High-precision benchmarking with statistical analysis and outlier detection
-- WASM module compiled from Rust for optimal performance comparison
-- Located at `/password-performance` route with detailed performance metrics
-
-## File Structure
-
-- Components in `/src/components/`
-- UI components in `/src/components/ui/`
-- Main dashboard component: `/src/components/Dashboard.tsx`
-- Global styles with neobrutalism CSS variables in `/src/index.css`
-
-When suggesting code, prioritize neobrutalism design patterns and ensure components follow the established styling system.
+- Weather: Open-Meteo (no key required)
+- Useless facts: `https://uselessfacts.jsph.pl/api/v2/facts/random`
+- All fetches are lazy — only triggered when the widget drawer is first opened
 
 ## Coding Style Guidelines
 
-- **NEVER add comments unless absolutely critical** - Code must be self-documenting through clear naming
-- **Descriptive variable and function names are mandatory** - Names should eliminate the need for comments
-- **Functions must have single, obvious purposes** - Split complex logic into clearly named functions
-- **TypeScript types are documentation** - Use precise types to communicate intent
-- **Readable code over clever code** - Prioritize clarity and maintainability
-- **Zero tolerance for unnecessary comments** - Only document complex business logic or non-obvious technical decisions
-- **Self-documenting code is the highest priority** - Invest time in perfect naming over explanatory comments
+- **NEVER add comments unless absolutely critical** — code must be self-documenting
+- **Descriptive names are mandatory** — names should eliminate the need for comments
+- **Functions must have single, obvious purposes**
+- **TypeScript types are documentation** — use precise types to communicate intent
+- **Readable code over clever code**
+- **Zero tolerance for unnecessary comments**
+
