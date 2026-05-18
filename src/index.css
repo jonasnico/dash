@@ -2,52 +2,41 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── SWISS INDUSTRIAL PRINT (Light) ─────────────────────────────────────── */
 :root {
   --border-radius: 0px;
-  --box-shadow-x: 5px;
-  --box-shadow-y: 5px;
-  --reverse-box-shadow-x: -5px;
-  --reverse-box-shadow-y: -5px;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --reverse-box-shadow-x: -4px;
+  --reverse-box-shadow-y: -4px;
 
   --heading-font-weight: 900;
   --base-font-weight: 400;
 
-  --background: #ffffff;
-  --secondary-background: #f2f2f2;
-  --foreground: #000000;
-  --main-foreground: #ffffff;
+  --background: #f4f4f0;
+  --secondary-background: #eaeae4;
+  --foreground: #111111;
+  --main-foreground: #f4f4f0;
 
-  --main: #ff2d2d;
-  --performance-card: #ff2d2d;
-  --performance-card-foreground: #ffffff;
-  --secondary-card: #ffffff;
-  --border: #000000;
-  --ring: #000000;
-  --overlay: rgba(0, 0, 0, 0.8);
+  --main: #e61919;
+  --border: #111111;
+  --ring: #111111;
+  --overlay: rgba(0, 0, 0, 0.75);
 
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-
-  --chart-1: #ff2d2d;
-  --chart-2: #ff6b2d;
-  --chart-3: #ffb02d;
-  --chart-4: #2dcc70;
-  --chart-5: #2d8fff;
-  --chart-active-dot: #000;
 }
 
+/* ─── TACTICAL TELEMETRY (Dark) ──────────────────────────────────────────── */
 .dark {
   --background: #0a0a0a;
   --secondary-background: #141414;
-  --foreground: #ffffff;
-  --main: #ff2d2d;
-  --main-foreground: #ffffff;
-  --performance-card: #ff2d2d;
-  --performance-card-foreground: #ffffff;
-  --secondary-card: #141414;
-  --border: #ffffff;
-  --ring: #ffffff;
+  --foreground: #eaeaea;
+  --main: #e61919;
+  --main-foreground: #eaeaea;
+  --border: #eaeaea;
+  --ring: #eaeaea;
+  --overlay: rgba(0, 0, 0, 0.85);
   --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-  --chart-active-dot: #fff;
 }
 
 @theme inline {
@@ -56,18 +45,9 @@
   --color-secondary-background: var(--secondary-background);
   --color-foreground: var(--foreground);
   --color-main-foreground: var(--main-foreground);
-  --color-performance-card: var(--performance-card);
-  --color-performance-card-foreground: var(--performance-card-foreground);
-  --color-secondary-card: var(--secondary-card);
   --color-border: var(--border);
   --color-overlay: var(--overlay);
   --color-ring: var(--ring);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
 
   --spacing-boxShadowX: var(--box-shadow-x);
   --spacing-boxShadowY: var(--box-shadow-y);
@@ -75,7 +55,6 @@
   --spacing-reverseBoxShadowY: var(--reverse-box-shadow-y);
 
   --radius-base: var(--border-radius);
-
   --shadow-shadow: var(--shadow);
 
   --font-weight-base: var(--base-font-weight);
@@ -85,14 +64,51 @@
 @layer base {
   body {
     @apply text-foreground font-base bg-background;
+    overflow-x: hidden;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
+  h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
   }
+
+  /* ── Mechanical noise grain overlay ── */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 300px 300px;
+  }
+
+  /* ── CRT Scanlines (dark mode only) ── */
+  .dark body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.09) 2px,
+      rgba(0, 0, 0, 0.09) 4px
+    );
+  }
+}
+
+/* ── Phosphor glow utilities (dark mode) ── */
+.dark .glow-red {
+  text-shadow: 0 0 12px rgba(230, 25, 25, 0.55);
+}
+
+.dark .glow-green {
+  text-shadow: 0 0 10px rgba(74, 246, 38, 0.5);
 }

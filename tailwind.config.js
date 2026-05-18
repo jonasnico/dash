@@ -6,6 +6,7 @@ export default {
       fontFamily: {
         base: ["DM Sans", "sans-serif"],
         heading: ["Archivo Black", "sans-serif"],
+        mono: ["IBM Plex Mono", "JetBrains Mono", "ui-monospace", "monospace"],
       },
       borderRadius: {
         base: "var(--radius-base)",
@@ -27,6 +28,7 @@ export default {
         "main-foreground": "var(--color-main-foreground)",
         border: "var(--color-border)",
         ring: "var(--color-ring)",
+        "terminal-green": "#4AF626",
       },
     },
   },
