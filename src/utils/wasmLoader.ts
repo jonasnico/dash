@@ -24,7 +24,7 @@ export async function loadPasswordWasm(): Promise<WasmModule> {
         };
       },
       benchmark_password_analysis: (password: string, iterations: number) =>
-        wasmModule.benchmark_computation(password, iterations),
+        wasmModule.benchmark_full_analysis(password, iterations),
     };
   } catch (error) {
     console.warn("Failed to load WebAssembly module, falling back to JavaScript:", error);

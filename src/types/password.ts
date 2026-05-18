@@ -24,6 +24,8 @@ export interface BenchmarkStats {
 export interface BenchmarkResult {
   jsTime: number;
   wasmTime: number;
+  jsPerCallUs: number;
+  wasmPerCallUs: number;
   speedup: number;
   iterations: number;
   jsStats?: BenchmarkStats;

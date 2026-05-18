@@ -313,6 +313,8 @@ const PasswordPerformance: React.FC = () => {
       setBenchmark({
         jsTime: jsStats.median,
         wasmTime: wasmStats.median,
+        jsPerCallUs: (jsStats.median / iterations) * 1000,
+        wasmPerCallUs: (wasmStats.median / iterations) * 1000,
         speedup: wasmStats.median > 0 ? jsStats.median / wasmStats.median : 1,
         iterations,
         jsStats,
@@ -542,35 +544,57 @@ const PasswordPerformance: React.FC = () => {
             <SectionHeader index="02" title="Performance Benchmark" />
 
             <div className="space-y-px border-2 border-border bg-border shadow-shadow">
-              {/* 3-up metric cards using gap-px grid trick */}
+
+              {/* Methodology explanation */}
+              <div className="bg-background px-4 sm:px-6 py-4 border-b border-border/20">
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-8 items-start">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-main shrink-0 glow-red">
+                    [ WHAT IS MEASURED ]
+                  </span>
+                  <p className="font-mono text-[11px] text-foreground/50 leading-relaxed">
+                    Both implementations run the <span className="text-foreground/80">full analysis pipeline</span> — score,
+                    strength classification, entropy, time-to-crack, and feedback — exactly{" "}
+                    <span className="text-foreground/80">{benchmark.iterations.toLocaleString()} times</span> in a batch.
+                    The timer wraps the entire batch. Reported time is the{" "}
+                    <span className="text-foreground/80">median of 15 rounds</span> with outliers removed via IQR.
+                    WASM timing runs inside the binary to exclude JS↔WASM call overhead.
+                  </p>
+                </div>
+              </div>
+
+              {/* Per-call latency — primary metric */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border">
                 {[
                   {
                     icon: <Timer size={14} />,
                     label: "JavaScript",
-                    tag: "Native Engine",
-                    value: `${benchmark.jsTime.toFixed(3)}ms`,
-                    sub: "median time",
-                    note: "V8 / SpiderMonkey / WebKit",
+                    tag: "V8 / SpiderMonkey",
+                    value: benchmark.jsPerCallUs < 10
+                      ? `${benchmark.jsPerCallUs.toFixed(2)}µs`
+                      : `${benchmark.jsPerCallUs.toFixed(1)}µs`,
+                    sub: "per analysis call",
+                    note: `${benchmark.jsTime.toFixed(2)}ms total · ${benchmark.iterations.toLocaleString()} calls`,
                     highlight: false,
                   },
                   {
                     icon: <Zap size={14} />,
-                    label: implementationName,
-                    tag: "Binary Sandbox",
-                    value: `${benchmark.wasmTime.toFixed(3)}ms`,
-                    sub: "median time",
-                    note: "Compiled Rust in browser sandbox",
+                    label: "Rust / WASM",
+                    tag: "Compiled Binary",
+                    value: benchmark.wasmPerCallUs < 10
+                      ? `${benchmark.wasmPerCallUs.toFixed(2)}µs`
+                      : `${benchmark.wasmPerCallUs.toFixed(1)}µs`,
+                    sub: "per analysis call",
+                    note: `${benchmark.wasmTime.toFixed(2)}ms total · ${benchmark.iterations.toLocaleString()} calls`,
                     highlight: false,
                   },
                   {
                     icon: <TrendingUp size={14} />,
                     label: "Speedup",
-                    tag: `${benchmark.iterations.toLocaleString()} iters`,
+                    tag: benchmark.speedup > 1 ? "WASM FASTER" : "JS FASTER",
                     value: `${benchmark.speedup.toFixed(2)}×`,
-                    sub: "WASM vs JS median",
-                    note: ">1× = WASM wins",
-                    highlight: benchmark.speedup > 1,
+                    sub: benchmark.speedup > 1 ? "WASM wins" : "JS wins",
+                    note: "Ratio of median batch times",
+                    highlight: true,
                   },
                 ].map(({ icon, label, tag, value, sub, note, highlight }) => (
                   <div
@@ -586,7 +610,7 @@ const PasswordPerformance: React.FC = () => {
                           {label}
                         </span>
                       </div>
-                      <span className={`font-mono text-[9px] uppercase tracking-widest ${highlight ? "opacity-50" : "text-foreground/20"}`}>
+                      <span className={`font-mono text-[9px] uppercase tracking-widest ${highlight ? "opacity-60" : "text-foreground/20"}`}>
                         {tag}
                       </span>
                     </div>
@@ -597,10 +621,10 @@ const PasswordPerformance: React.FC = () => {
                       {value}
                     </div>
                     <div>
-                      <div className={`font-mono text-[10px] uppercase tracking-[0.15em] ${highlight ? "opacity-60" : "text-foreground/30"}`}>
+                      <div className={`font-mono text-[10px] uppercase tracking-[0.15em] ${highlight ? "opacity-70" : "text-foreground/40"}`}>
                         {sub}
                       </div>
-                      <div className={`font-mono text-[10px] mt-0.5 leading-snug ${highlight ? "opacity-40" : "text-foreground/20"}`}>
+                      <div className={`font-mono text-[10px] mt-0.5 leading-snug ${highlight ? "opacity-50" : "text-foreground/25"}`}>
                         {note}
                       </div>
                     </div>
@@ -608,14 +632,30 @@ const PasswordPerformance: React.FC = () => {
                 ))}
               </div>
 
+              {/* Why it matters */}
+              <div className="bg-background px-4 sm:px-6 py-4 border-t border-border/20">
+                <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 sm:gap-8 items-start">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/30 shrink-0">
+                    [ WHY IT MATTERS ]
+                  </span>
+                  <p className="font-mono text-[11px] text-foreground/40 leading-relaxed">
+                    WASM runs pre-compiled machine code — no JIT warmup, no garbage collection pauses.
+                    JS relies on the browser's JIT compiler, which is excellent but introduces
+                    unpredictability. At scale (e.g., validating thousands of passwords server-side
+                    via a WASM runtime), even a 1.5× difference compounds significantly.
+                    The per-call µs figure is the actionable number.
+                  </p>
+                </div>
+              </div>
+
               {/* Visual comparison bars */}
               <div className="bg-secondary-background p-4 sm:p-6 space-y-4">
                 <div>
                   <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-foreground/40 block">
-                    [ VISUAL COMPARISON ]
+                    [ RELATIVE THROUGHPUT ]
                   </span>
                   <p className="font-mono text-[10px] text-foreground/20 mt-0.5">
-                    Shorter bar = faster. Median of {benchmark.iterations.toLocaleString()} rounds.
+                    Shorter bar = faster. Scaled to slowest. Batch median across {benchmark.iterations.toLocaleString()} iterations.
                   </p>
                 </div>
                 {(() => {
@@ -623,9 +663,9 @@ const PasswordPerformance: React.FC = () => {
                   return (
                     <div className="space-y-3">
                       {[
-                        { label: "JS",   time: benchmark.jsTime,   color: "bg-foreground" },
-                        { label: "WASM", time: benchmark.wasmTime, color: "bg-main" },
-                      ].map(({ label, time, color }) => (
+                        { label: "JS",   time: benchmark.jsTime,   perCall: benchmark.jsPerCallUs,   color: "bg-foreground" },
+                        { label: "WASM", time: benchmark.wasmTime, perCall: benchmark.wasmPerCallUs, color: "bg-main" },
+                      ].map(({ label, time, perCall, color }) => (
                         <div key={label} className="flex items-center gap-3 sm:gap-4">
                           <span className="font-mono text-[10px] uppercase tracking-widest w-10 shrink-0 text-foreground/40">
                             {label}
@@ -636,8 +676,8 @@ const PasswordPerformance: React.FC = () => {
                               style={{ width: `${(time / maxTime) * 100}%` }}
                             />
                           </div>
-                          <span className="font-mono text-xs w-20 text-right shrink-0 text-foreground/70">
-                            {time.toFixed(3)}ms
+                          <span className="font-mono text-[11px] w-24 text-right shrink-0 text-foreground/60">
+                            {perCall < 10 ? perCall.toFixed(2) : perCall.toFixed(1)}µs/call
                           </span>
                         </div>
                       ))}
@@ -672,13 +712,29 @@ const PasswordPerformance: React.FC = () => {
                         </span>
                       </div>
                       <div className="px-4 sm:px-6 pb-4">
-                        <DataRow label="Median"   value={`${stats.median.toFixed(3)}ms`} note="Most outlier-resistant central value." />
-                        <DataRow label="Mean"     value={`${stats.mean.toFixed(3)}ms`}   note="Average across all valid rounds." />
-                        <DataRow label="Min"      value={`${stats.min.toFixed(3)}ms`}    note="Fastest observed round." />
-                        <DataRow label="Max"      value={`${stats.max.toFixed(3)}ms`}    note="Slowest observed round." />
-                        <DataRow label="Samples"  value={String(stats.count)}            note="Rounds after outlier removal." />
-                        <DataRow label="Outliers" value={String(stats.outliers)}         note="Excluded via IQR method." />
-                        <DataRow label="Consistency" value={`${consistency.toFixed(1)}%`} note="Lower spread = more stable." />
+                        <DataRow
+                          label="Median (batch)"
+                          value={`${stats.median.toFixed(3)}ms`}
+                          note={`Per call: ${((stats.median / benchmark.iterations) * 1000).toFixed(3)}µs — most outlier-resistant.`}
+                        />
+                        <DataRow
+                          label="Mean (batch)"
+                          value={`${stats.mean.toFixed(3)}ms`}
+                          note={`Per call: ${((stats.mean / benchmark.iterations) * 1000).toFixed(3)}µs — average across all valid rounds.`}
+                        />
+                        <DataRow
+                          label="Min (batch)"
+                          value={`${stats.min.toFixed(3)}ms`}
+                          note={`Per call: ${((stats.min / benchmark.iterations) * 1000).toFixed(3)}µs — best-case (CPU uncontested).`}
+                        />
+                        <DataRow
+                          label="Max (batch)"
+                          value={`${stats.max.toFixed(3)}ms`}
+                          note={`Per call: ${((stats.max / benchmark.iterations) * 1000).toFixed(3)}µs — worst-case (GC / OS scheduling).`}
+                        />
+                        <DataRow label="Valid rounds"    value={String(stats.count)}            note="Rounds remaining after IQR outlier removal." />
+                        <DataRow label="Outliers removed" value={String(stats.outliers)}        note="Rounds excluded — likely GC pauses or OS preemption." />
+                        <DataRow label="Consistency"     value={`${consistency.toFixed(1)}%`}  note="100% = perfectly stable. Lower = more JIT/GC variance." />
                       </div>
                     </div>
                   );

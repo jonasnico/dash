@@ -160,14 +160,17 @@ export function get_feedback(password) {
 }
 
 /**
+ * Benchmarks the full analysis pipeline in a single pass per iteration —
+ * equivalent algorithmic work to `analyzePasswordJS` on the JS side.
+ * Timed inside WASM to exclude JS↔WASM boundary overhead.
  * @param {string} password
  * @param {number} iterations
  * @returns {number}
  */
-export function benchmark_computation(password, iterations) {
+export function benchmark_full_analysis(password, iterations) {
     const ptr0 = passStringToWasm0(password, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.benchmark_computation(ptr0, len0, iterations);
+    const ret = wasm.benchmark_full_analysis(ptr0, len0, iterations);
     return ret;
 }
 
